@@ -1,0 +1,36 @@
+body {
+  background:#0b0f19;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+#grid-container {
+  display:grid;
+  grid-template-columns:repeat(20,20px);
+  margin:15px auto;
+  width:max-content;
+}
+
+.cell {
+  width:20px;
+  height:20px;
+}
+
+.wall {
+  background:#223;
+}
+
+.dot {
+  background:yellow;
+  border-radius:50%;
+}
+
+.pac {
+  background:url('Ds.png');
+  background-size:cover;
+}
+
+.ghost {
+  background:red;
+}
