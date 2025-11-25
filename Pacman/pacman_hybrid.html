@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Pacman Hybrid</title>
+<link rel="stylesheet" href="pacman.css"/>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="../web3.js"></script>
+</head>
+
+<body>
+  <div id="addr">Not Connected</div>
+
+  <div id="grid-container"></div>
+
+  <div id="dpad">
+    <button id="btn-up">▲</button>
+    <div>
+      <button id="btn-left">◀</button>
+      <button id="btn-right">▶</button>
+    </div>
+    <button id="btn-down">▼</button>
+  </div>
+
+  <div>
+    <button id="start-button">Start Game (0.01 STT)</button>
+  </div>
+
+  <div>Score: <span id="score">0</span></div>
+
+<script src="pacman_hybrid.js"></script>
+</body>
+</html>
