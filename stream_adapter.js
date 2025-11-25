@@ -1,36 +1,40 @@
-/* stream_adapter.js — FINAL FIX */
+/* stream_adapter.js — FIX FINAL */
 
-let pointsInterval = null;
+let mockInterval = null;
+let isStreaming = false;
 
 function startMockStream() {
-  if (!window.IS_CONNECTED) return; // ⛔ Tidak boleh jalan sebelum wallet connect
+  if (isStreaming) return;
+  isStreaming = true;
 
   let p = 0;
 
-  pointsInterval = setInterval(() => {
+  mockInterval = setInterval(() => {
     p += Math.floor(Math.random() * 5) + 1;
-
     document.getElementById("points").innerText = p;
-    addActivity(`[stream] +${p} points`);
+
+    addActivity(`[mock] +${p} points`);
   }, 2000);
 }
 
 function stopMockStream() {
-  clearInterval(pointsInterval);
+  clearInterval(mockInterval);
+  isStreaming = false;
 }
 
 function addActivity(msg) {
-  const box = document.getElementById("activity");
-  const now = new Date().toLocaleTimeString();
-  box.innerHTML += `<div>[${now}] ${msg}</div>`;
-  box.scrollTop = box.scrollHeight;
+  const feed = document.getElementById("activity");
+  const t = new Date().toLocaleTimeString();
+  feed.innerHTML += `<div>[${t}] ${msg}</div>`;
+  feed.scrollTop = feed.scrollHeight;
 }
 
-/* toggle */
 document.getElementById("toggle-sim").onchange = (e) => {
-  stopMockStream();
-  if (e.target.checked && window.IS_CONNECTED) startMockStream();
+  if (!window.IS_CONNECTED) {
+    alert("Connect wallet dulu.");
+    e.target.checked = false;
+    return;
+  }
+  if (e.target.checked) startMockStream();
+  else stopMockStream();
 };
-
-/* 🔥 Jangan mulai otomatis lagi */
-/* startMockStream(); → HAPUS */
