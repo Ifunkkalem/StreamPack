@@ -8,9 +8,9 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="game-controls.css" />
 
-  <!-- LIBRARY LOKAL (WAJIB, agar CSP tidak error) -->
-  <script src="libs/ethers.min.js"></script>
+  <!-- LIBRARY LOKAL -->
   <script src="libs/chart.min.js"></script>
+  <script src="libs/ethers.min.js"></script>
 </head>
 
 <body>
@@ -46,8 +46,8 @@
 
       <div class="card game-frame">
         <h3>Mini Game (Hybrid)</h3>
-
-        <!-- FIXED: path pacman disesuaikan -->
+        
+        <!-- FIXED: INI SUDAH 100% BENAR -->
         <iframe id="pacman-iframe" src="Pacman/pacman_hybrid.html" frameborder="0"></iframe>
       </div>
 
@@ -85,15 +85,22 @@
         <div id="swap-status" class="muted"></div>
       </div>
 
+      <div class="card controls">
+        <h3>Controls</h3>
+        <label><input id="toggle-sim" type="checkbox" /> Use Mock Stream</label>
+        <button id="btn-clear" class="btn small outline">Clear Log</button>
+        <button id="btn-export" class="btn small outline">Export Log</button>
+      </div>
+
     </aside>
   </main>
 
   <footer class="footer muted">Built for Somnia Hackathon — STT Testnet</footer>
 
   <script src="config.js"></script>
-  <script src="stream_adapter.js"></script>
   <script src="web3.js"></script>
   <script src="mock-pairs.js"></script>
+  <script src="stream_adapter.js"></script>
   <script src="app.js"></script>
 </body>
-          </html>
+</html>
