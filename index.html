@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DreamStream PRO+ — Somnia Competition Edition</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="game-controls.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/Ds.png" class="logo" alt="logo" />
+      <div>
+        <h1>DreamStream PRO+</h1>
+        <p class="muted">Somnia Testnet (STT) — Competition Edition</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div id="addr-display">Not connected</div>
+      <button id="btn-connect" class="btn">Connect Wallet</button>
+      <div id="live-indicator" class="indicator offline">OFFLINE</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="left">
+      <div class="card stats">
+        <div><h3>Points</h3><div id="points" class="big">0</div></div>
+        <div><h3>Status</h3><div id="stream-status" class="muted">DISCONNECTED</div></div>
+        <div><h3>Tracked</h3><div id="wallet-count" class="muted">0</div></div>
+      </div>
+
+      <div class="card chart">
+        <h3>Real-time Points</h3>
+        <canvas id="pointsChart"></canvas>
+      </div>
+
+      <div class="card game-frame">
+        <h3>Mini Game (Hybrid)</h3>
+        <iframe id="pacman-iframe" src="pacman/pacman_hybrid.html" frameborder="0"></iframe>
+      </div>
+
+      <div class="card activity">
+        <h3>Activity</h3>
+        <div id="activity" class="feed"><div>[init] Ready</div></div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="card balances">
+        <h3>Balances</h3>
+        <div>STT: <span id="balance-stt">-</span></div>
+        <div>PAC: <span id="balance-pac">-</span></div>
+      </div>
+
+      <div class="card pairs">
+        <h3>Live Pairs (Mock)</h3>
+        <div id="pairs"></div>
+      </div>
+
+      <div class="card leaderboard">
+        <h3>Leaderboard (Local)</h3>
+        <div>Your Score: <span id="my-total-score">0</span></div>
+        <ol id="leaderboard-list"></ol>
+      </div>
+
+      <div class="card swap">
+        <h3>Swap Score → PAC</h3>
+        <div>Ratio: 10 Score = 1 PAC</div>
+        <input id="swap-input" type="number" min="10" step="10" placeholder="Points to swap" />
+        <button id="btn-swap" class="btn small">Swap</button>
+        <div id="swap-status" class="muted"></div>
+      </div>
+
+      <div class="card controls">
+        <h3>Controls</h3>
+        <label><input id="toggle-sim" type="checkbox" checked/> Use Mock Stream</label>
+        <button id="btn-clear" class="btn small outline">Clear Activity</button>
+        <button id="btn-export" class="btn small outline">Export Log</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer muted">Built for Somnia Hackathon — STT Testnet</footer>
+
+  <script src="config.js"></script>
+  <script src="stream_adapter.js"></script>
+  <script src="web3.js"></script>
+  <script src="mock-pairs.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
