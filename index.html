@@ -4,11 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DreamStream PRO+ — Somnia Competition Edition</title>
+
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="game-controls.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+  <!-- LIBRARY LOKAL (WAJIB, agar CSP tidak error) -->
+  <script src="libs/chart.min.js"></script>
+  <script src="libs/ethers.min.js"></script>
 </head>
+
 <body>
   <header class="topbar">
     <div class="brand">
@@ -28,6 +32,7 @@
 
   <main class="container">
     <section class="left">
+
       <div class="card stats">
         <div><h3>Points</h3><div id="points" class="big">0</div></div>
         <div><h3>Status</h3><div id="stream-status" class="muted">DISCONNECTED</div></div>
@@ -41,16 +46,20 @@
 
       <div class="card game-frame">
         <h3>Mini Game (Hybrid)</h3>
-        <iframe id="pacman-iframe" src="Pacman/pacman_hybrid.html" frameborder="0"></iframe>
+
+        <!-- FIXED: path pacman disesuaikan -->
+        <iframe id="pacman-iframe" src="pacman/pacman_hybrid.html" frameborder="0"></iframe>
       </div>
 
       <div class="card activity">
         <h3>Activity</h3>
         <div id="activity" class="feed"><div>[init] Ready</div></div>
       </div>
+
     </section>
 
     <aside class="right">
+
       <div class="card balances">
         <h3>Balances</h3>
         <div>STT: <span id="balance-stt">-</span></div>
@@ -58,7 +67,7 @@
       </div>
 
       <div class="card pairs">
-        <h3>Live Pairs (Mock)</h3>
+        <h3>Live Pairs</h3>
         <div id="pairs"></div>
       </div>
 
@@ -76,12 +85,6 @@
         <div id="swap-status" class="muted"></div>
       </div>
 
-      <div class="card controls">
-        <h3>Controls</h3>
-        <label><input id="toggle-sim" type="checkbox" checked/> Use Mock Stream</label>
-        <button id="btn-clear" class="btn small outline">Clear Activity</button>
-        <button id="btn-export" class="btn small outline">Export Log</button>
-      </div>
     </aside>
   </main>
 
@@ -93,4 +96,4 @@
   <script src="mock-pairs.js"></script>
   <script src="app.js"></script>
 </body>
-</html>
+          </html>
