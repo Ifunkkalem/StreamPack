@@ -1,12 +1,12 @@
-/* web3.js — DreamStream PRO+ FINAL FIX */
+/* web3.js — FINAL FIX */
 
 async function waitForEthereum() {
   return new Promise((resolve) => {
     if (window.ethereum) return resolve(window.ethereum);
     let tries = 0;
-    const intv = setInterval(() => {
+    const i = setInterval(() => {
       if (window.ethereum || tries > 25) {
-        clearInterval(intv);
+        clearInterval(i);
         resolve(window.ethereum);
       }
       tries++;
@@ -14,7 +14,6 @@ async function waitForEthereum() {
   });
 }
 
-/* 🔥 Tambahan: pastikan jaringan Somnia ada di MetaMask */
 async function ensureSomniaChain() {
   try {
     await window.ethereum.request({
@@ -33,28 +32,22 @@ window.DreamWeb3 = {
   signer: null,
   address: null,
 
-  /* ===========================
-     CONNECT WALLET
-     =========================== */
   async connect() {
     await waitForEthereum();
 
     if (!window.ethereum) {
       alert("MetaMask tidak ditemukan.");
-      return null;
+      return;
     }
 
-    /* 🔥 WAJIB: tambahkan Somnia Testnet dulu */
     const ok = await ensureSomniaChain();
     if (!ok) {
       alert("Tidak dapat menambahkan jaringan Somnia.");
-      return null;
+      return;
     }
 
     try {
       this.provider = new ethers.providers.Web3Provider(window.ethereum);
-
-      /* 🔥 Connect akun */
       await this.provider.send("eth_requestAccounts", []);
       this.signer = this.provider.getSigner();
       this.address = await this.signer.getAddress();
@@ -65,34 +58,26 @@ window.DreamWeb3 = {
 
       window.IS_CONNECTED = true;
 
-      document.getElementById("live-indicator").classList.remove("offline");
-      document.getElementById("live-indicator").classList.add("online");
-      document.getElementById("live-indicator").innerText = "ONLINE";
+      const ind = document.getElementById("live-indicator");
+      ind.classList.remove("offline");
+      ind.classList.add("online");
+      ind.innerText = "ONLINE";
 
-      /* 🔥 Setelah connect → baru aktifkan mock stream */
       if (document.getElementById("toggle-sim").checked) {
         startMockStream();
       }
 
-      return this.address;
     } catch (err) {
       console.error("Connect error:", err);
       alert("Gagal menghubungkan wallet.");
-      return null;
     }
   },
 
-  /* ===========================
-     BALANCE
-     =========================== */
   async refreshBalances() {
-    if (!this.provider || !this.address) return;
-
     try {
-      const balSTT = await this.provider.getBalance(this.address);
-
+      const stt = await this.provider.getBalance(this.address);
       document.getElementById("balance-stt").innerText =
-        Number(ethers.utils.formatEther(balSTT)).toFixed(4);
+        Number(ethers.utils.formatEther(stt)).toFixed(4);
 
       const pac = new ethers.Contract(
         window.CONTRACTS.PAC_TOKEN,
@@ -101,50 +86,15 @@ window.DreamWeb3 = {
       );
 
       const balPAC = await pac.balanceOf(this.address);
-
       document.getElementById("balance-pac").innerText =
         Number(ethers.utils.formatUnits(balPAC, 18)).toFixed(2);
 
     } catch (err) {
-      console.error("Balance fetch error:", err);
+      console.error("Balance error:", err);
     }
-  },
-
-  /* ===========================
-     START GAME (STT fee)
-     =========================== */
-  async startGame() {
-    if (!this.signer) {
-      alert("Connect wallet dulu.");
-      return false;
-    }
-
-    try {
-      const tx = await this.signer.sendTransaction({
-        to: this.address,
-        value: ethers.utils.parseEther("0.01")
-      });
-
-      await tx.wait();
-      return true;
-    } catch (err) {
-      console.error("Start game error:", err);
-      alert("Pembayaran STT gagal.");
-      return false;
-    }
-  },
-
-  /* ===========================
-     SWAP SCORE → PAC
-     =========================== */
-  async swapScore(score) {
-    if (score < 10) return "Minimal 10 poin untuk swap.";
-    const pac = Math.floor(score / 10);
-    return `Swap berhasil: ${pac} PAC (simulasi).`;
   }
 };
 
-/* CONNECT EVENT */
 document.getElementById("btn-connect").onclick = async () => {
   await DreamWeb3.connect();
 };
