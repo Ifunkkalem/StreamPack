@@ -1,19 +1,30 @@
-/* stream_adapter.js — mock stream for points */
+/* stream_adapter.js — mock stream for points (patched) */
 
 let pointsInterval = null;
+let currentPoints = 0;
 
 function startMockStream() {
-  let p = 0;
+  if (pointsInterval) return; // sudah berjalan
+  currentPoints = Number(document.getElementById("points")?.innerText || 0);
 
   pointsInterval = setInterval(() => {
-    p += Math.floor(Math.random() * 5) + 1;
-    document.getElementById("points").innerText = p;
-    addActivity(`[stream] +${p} points`);
+    // tambahkan delta kecil agar log lebih manusiawi
+    const delta = Math.floor(Math.random() * 3) + 1; // 1..3
+    currentPoints += delta;
+    document.getElementById("points").innerText = currentPoints;
+    addActivity(`[stream] +${delta} (total ${currentPoints})`);
+
+    // broadcast ke iframe juga (optional)
+    notifyPacmanIframe({ type: "STREAM_POINTS", total: currentPoints, delta });
+
   }, 2000);
 }
 
 function stopMockStream() {
-  clearInterval(pointsInterval);
+  if (pointsInterval) {
+    clearInterval(pointsInterval);
+    pointsInterval = null;
+  }
 }
 
 function addActivity(msg) {
@@ -23,9 +34,21 @@ function addActivity(msg) {
   div.scrollTop = div.scrollHeight;
 }
 
+/* toggle handler: hanya aktif jika wallet connected */
 document.getElementById("toggle-sim").onchange = (e) => {
-  if (e.target.checked) startMockStream();
+  const checked = e.target.checked;
+  if (!window.IS_CONNECTED && checked) {
+    // forbid auto-start before connect
+    addActivity("[mock] Toggle on blocked: wallet not connected");
+    // force UI off
+    e.target.checked = false;
+    alert("Hubungkan wallet dulu untuk mengaktifkan mock stream.");
+    return;
+  }
+
+  if (checked) startMockStream();
   else stopMockStream();
 };
 
-startMockStream();
+/* IMPORTANT: jangan autostart mock ketika file dimuat */
+// sebelumnya ada startMockStream() di akhir; dihapus supaya mock tidak langsung jalan.
