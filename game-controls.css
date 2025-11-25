@@ -1,0 +1,22 @@
+#dpad {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#dpad button {
+  width: 60px;
+  height: 60px;
+  margin: 4px;
+  font-size: 26px;
+  border-radius: 12px;
+  border: none;
+  background: #1a2538;
+  color: white;
+  box-shadow: 0 0 6px #000;
+}
+
+#dpad div {
+  display: flex;
+}
