@@ -1,4 +1,4 @@
-/* web3.js — DreamStream PRO+ FINAL (patched) */
+/* web3.js — DreamStream PRO+ FINAL FIX */
 
 async function waitForEthereum() {
   return new Promise((resolve) => {
@@ -14,21 +14,47 @@ async function waitForEthereum() {
   });
 }
 
+/* 🔥 Tambahan: pastikan jaringan Somnia ada di MetaMask */
+async function ensureSomniaChain() {
+  try {
+    await window.ethereum.request({
+      method: "wallet_addEthereumChain",
+      params: [window.SOMNIA_CHAIN]
+    });
+    return true;
+  } catch (err) {
+    console.error("Add chain error:", err);
+    return false;
+  }
+}
+
 window.DreamWeb3 = {
   provider: null,
   signer: null,
   address: null,
 
+  /* ===========================
+     CONNECT WALLET
+     =========================== */
   async connect() {
     await waitForEthereum();
 
     if (!window.ethereum) {
-      alert("MetaMask tidak ditemukan. Buka melalui browser MetaMask.");
+      alert("MetaMask tidak ditemukan.");
+      return null;
+    }
+
+    /* 🔥 WAJIB: tambahkan Somnia Testnet dulu */
+    const ok = await ensureSomniaChain();
+    if (!ok) {
+      alert("Tidak dapat menambahkan jaringan Somnia.");
       return null;
     }
 
     try {
       this.provider = new ethers.providers.Web3Provider(window.ethereum);
+
+      /* 🔥 Connect akun */
       await this.provider.send("eth_requestAccounts", []);
       this.signer = this.provider.getSigner();
       this.address = await this.signer.getAddress();
@@ -36,21 +62,15 @@ window.DreamWeb3 = {
       document.getElementById("addr-display").innerText = this.address;
 
       await this.refreshBalances();
+
       window.IS_CONNECTED = true;
 
       document.getElementById("live-indicator").classList.remove("offline");
       document.getElementById("live-indicator").classList.add("online");
       document.getElementById("live-indicator").innerText = "ONLINE";
 
-      // enable Start button in parent page (if exists)
-      const startBtn = document.getElementById("start-button");
-      if (startBtn) startBtn.disabled = false;
-
-      // beri tahu iframe pacman bahwa wallet sudah connected + kirim balances
-      notifyPacmanAfterConnect(this);
-
-      // mulai mock stream & pairs hanya setelah connect (jika toggle aktif)
-      if (document.getElementById("toggle-sim")?.checked) {
+      /* 🔥 Setelah connect → baru aktifkan mock stream */
+      if (document.getElementById("toggle-sim").checked) {
         startMockStream();
       }
 
@@ -62,16 +82,18 @@ window.DreamWeb3 = {
     }
   },
 
+  /* ===========================
+     BALANCE
+     =========================== */
   async refreshBalances() {
     if (!this.provider || !this.address) return;
 
     try {
-      // STT native balance
       const balSTT = await this.provider.getBalance(this.address);
+
       document.getElementById("balance-stt").innerText =
         Number(ethers.utils.formatEther(balSTT)).toFixed(4);
 
-      // PAC ERC-20
       const pac = new ethers.Contract(
         window.CONTRACTS.PAC_TOKEN,
         window.ABI.PAC,
@@ -79,75 +101,50 @@ window.DreamWeb3 = {
       );
 
       const balPAC = await pac.balanceOf(this.address);
+
       document.getElementById("balance-pac").innerText =
         Number(ethers.utils.formatUnits(balPAC, 18)).toFixed(2);
 
-      // update pairs immediately
-      if (typeof updatePairs === "function") updatePairs();
     } catch (err) {
       console.error("Balance fetch error:", err);
     }
   },
 
+  /* ===========================
+     START GAME (STT fee)
+     =========================== */
   async startGame() {
-    // pastikan signer => processed only when wallet connected
     if (!this.signer) {
       alert("Connect wallet dulu.");
       return false;
     }
 
     try {
-      // gunakan fee kecil (sesuaikan kebutuhan). Anda minta 0.01 STT sebelumnya.
-      const valueToSend = "0.01"; // string ether
       const tx = await this.signer.sendTransaction({
-        to: this.address, // dummy: kirim ke self (simulasi bayar)
-        value: ethers.utils.parseEther(valueToSend)
+        to: this.address,
+        value: ethers.utils.parseEther("0.01")
       });
 
       await tx.wait();
-      // setelah sukses, refresh balance & notify iframe
-      await this.refreshBalances();
-      // kirim notifikasi ke iframe
-      const ifr = document.getElementById("pacman-iframe");
-      if (ifr) {
-        try {
-          ifr.contentWindow.postMessage({ type: "WALLET_TX_SUCCESS", hash: tx.hash }, "*");
-        } catch (e) {}
-      }
       return true;
     } catch (err) {
       console.error("Start game error:", err);
-      alert("Gagal melakukan pembayaran STT. Pastikan saldo cukup dan jaringan Somnia dipilih.");
+      alert("Pembayaran STT gagal.");
       return false;
     }
   },
 
+  /* ===========================
+     SWAP SCORE → PAC
+     =========================== */
   async swapScore(score) {
     if (score < 10) return "Minimal 10 poin untuk swap.";
     const pac = Math.floor(score / 10);
-    return `Berhasil swap → ${pac} PAC (simulasi).`;
+    return `Swap berhasil: ${pac} PAC (simulasi).`;
   }
 };
 
-/* helper: notify iframe setelah connect dengan balance */
-async function notifyPacmanAfterConnect(web3obj) {
-  try {
-    const balSTT = await web3obj.provider.getBalance(web3obj.address);
-    const pac = new ethers.Contract(window.CONTRACTS.PAC_TOKEN, window.ABI.PAC, web3obj.provider);
-    const balPAC = await pac.balanceOf(web3obj.address);
-
-    notifyPacmanIframe({
-      type: "WALLET_CONNECTED",
-      address: web3obj.address,
-      balanceSTT: ethers.utils.formatEther(balSTT),
-      balancePAC: ethers.utils.formatUnits(balPAC, 18)
-    });
-  } catch (e) {
-    console.warn("notifyPacmanAfterConnect failed", e);
-  }
-}
-
-/* connect button parent */
+/* CONNECT EVENT */
 document.getElementById("btn-connect").onclick = async () => {
   await DreamWeb3.connect();
 };
