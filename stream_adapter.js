@@ -1,54 +1,36 @@
-/* stream_adapter.js — mock stream for points (patched) */
+/* stream_adapter.js — FINAL FIX */
 
 let pointsInterval = null;
-let currentPoints = 0;
 
 function startMockStream() {
-  if (pointsInterval) return; // sudah berjalan
-  currentPoints = Number(document.getElementById("points")?.innerText || 0);
+  if (!window.IS_CONNECTED) return; // ⛔ Tidak boleh jalan sebelum wallet connect
+
+  let p = 0;
 
   pointsInterval = setInterval(() => {
-    // tambahkan delta kecil agar log lebih manusiawi
-    const delta = Math.floor(Math.random() * 3) + 1; // 1..3
-    currentPoints += delta;
-    document.getElementById("points").innerText = currentPoints;
-    addActivity(`[stream] +${delta} (total ${currentPoints})`);
+    p += Math.floor(Math.random() * 5) + 1;
 
-    // broadcast ke iframe juga (optional)
-    notifyPacmanIframe({ type: "STREAM_POINTS", total: currentPoints, delta });
-
+    document.getElementById("points").innerText = p;
+    addActivity(`[stream] +${p} points`);
   }, 2000);
 }
 
 function stopMockStream() {
-  if (pointsInterval) {
-    clearInterval(pointsInterval);
-    pointsInterval = null;
-  }
+  clearInterval(pointsInterval);
 }
 
 function addActivity(msg) {
-  const div = document.getElementById("activity");
+  const box = document.getElementById("activity");
   const now = new Date().toLocaleTimeString();
-  div.innerHTML += `<div>[${now}] ${msg}</div>`;
-  div.scrollTop = div.scrollHeight;
+  box.innerHTML += `<div>[${now}] ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
 }
 
-/* toggle handler: hanya aktif jika wallet connected */
+/* toggle */
 document.getElementById("toggle-sim").onchange = (e) => {
-  const checked = e.target.checked;
-  if (!window.IS_CONNECTED && checked) {
-    // forbid auto-start before connect
-    addActivity("[mock] Toggle on blocked: wallet not connected");
-    // force UI off
-    e.target.checked = false;
-    alert("Hubungkan wallet dulu untuk mengaktifkan mock stream.");
-    return;
-  }
-
-  if (checked) startMockStream();
-  else stopMockStream();
+  stopMockStream();
+  if (e.target.checked && window.IS_CONNECTED) startMockStream();
 };
 
-/* IMPORTANT: jangan autostart mock ketika file dimuat */
-// sebelumnya ada startMockStream() di akhir; dihapus supaya mock tidak langsung jalan.
+/* 🔥 Jangan mulai otomatis lagi */
+/* startMockStream(); → HAPUS */
