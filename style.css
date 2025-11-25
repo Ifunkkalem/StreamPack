@@ -1,0 +1,113 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #0b0f19;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #131a2a;
+  border-bottom: 1px solid #1f2a3e;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  margin-right: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.controls button {
+  margin-left: 10px;
+}
+
+.container {
+  display: flex;
+  padding: 15px;
+}
+
+.left {
+  flex: 3;
+  margin-right: 12px;
+}
+
+.right {
+  flex: 1.5;
+}
+
+.card {
+  background: #131a23;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #1f2a38;
+}
+
+.big {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.btn {
+  background: #3a58ff;
+  border: none;
+  padding: 8px 14px;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn.small {
+  padding: 5px 10px;
+}
+
+.btn.outline {
+  background: transparent;
+  border: 1px solid #3a58ff;
+}
+
+.footer {
+  text-align: center;
+  padding: 10px;
+  opacity: 0.5;
+  font-size: 14px;
+}
+
+.game-frame iframe {
+  width: 100%;
+  height: 350px;
+  border-radius: 6px;
+  background: black;
+}
+
+.indicator {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.indicator.offline {
+  background: #451919;
+  color: #ff5d5d;
+}
+
+.indicator.online {
+  background: #103d1c;
+  color: #47ff8a;
+}
+
+.feed {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 14px;
+  opacity: 0.9;
+}
