@@ -1,4 +1,4 @@
-/* pacman_hybrid.js — FINAL */
+/* pacman_hybrid.js — DreamStream FINAL FIX */
 
 let score = 0;
 let running = false;
@@ -38,6 +38,9 @@ function createGrid() {
 
   squares[pacIndex].classList.add("pac");
   squares[ghostIndex].classList.add("ghost");
+
+  score = 0;
+  scoreEl.innerText = 0;
 }
 
 function movePac(dir) {
@@ -67,14 +70,16 @@ function collectDot() {
   }
 }
 
+/* D-PAD CONTROLS */
 document.getElementById("btn-up").onclick = () => movePac("up");
 document.getElementById("btn-down").onclick = () => movePac("down");
 document.getElementById("btn-left").onclick = () => movePac("left");
 document.getElementById("btn-right").onclick = () => movePac("right");
 
+/* START BUTTON */
 document.getElementById("start-button").onclick = async () => {
-  await window.Web3Somnia.startGame();
-  running = true;
+  const ok = await window.Web3Somnia.startGame();
+  if (ok) running = true;
 };
 
 window.onload = () => createGrid();
