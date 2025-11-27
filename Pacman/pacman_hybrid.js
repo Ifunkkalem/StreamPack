@@ -35,6 +35,9 @@ function createGrid() {
   squares[pacIndex].classList.add("pac");
 }
 
+/* =========================
+   GERAK PACMAN
+========================= */
 function movePac(dir) {
   if (!running) return;
 
@@ -45,6 +48,16 @@ function movePac(dir) {
   if (dir === "up") pacIndex -= width;
   if (dir === "down") pacIndex += width;
 
+  // batas aman
+  if (!squares[pacIndex]) pacIndex = 22;
+
+  // ambil dot
+  if (squares[pacIndex].classList.contains("dot")) {
+    squares[pacIndex].classList.remove("dot");
+    score++;
+    scoreEl.innerText = "Score: " + score;
+  }
+
   squares[pacIndex].classList.add("pac");
 }
 
@@ -53,11 +66,35 @@ document.getElementById("btn-down").onclick = () => movePac("down");
 document.getElementById("btn-left").onclick = () => movePac("left");
 document.getElementById("btn-right").onclick = () => movePac("right");
 
+/* =========================
+   START GAME → REQUEST TX KE PARENT
+========================= */
 document.getElementById("start-button").onclick = () => {
-  running = true;
-  alert("Game Start!");
+  running = false;
+  window.parent.postMessage({ type: "REQUEST_START_GAME" }, "*");
 };
 
+/* =========================
+   TERIMA HASIL TX DARI PARENT
+========================= */
+window.addEventListener("message", (ev) => {
+  const data = ev.data || {};
+
+  if (data.type === "START_GAME_RESULT") {
+    if (data.success) {
+      running = true;
+      score = 0;
+      scoreEl.innerText = "Score: 0";
+      alert("TX sukses! Game dimulai.");
+    } else {
+      alert("TX gagal! Game dibatalkan.");
+    }
+  }
+});
+
+/* =========================
+   INIT GRID
+========================= */
 window.onload = () => {
   createGrid();
 };
