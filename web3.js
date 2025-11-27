@@ -1,11 +1,11 @@
-/* web3.js — FINAL (connect, balances, startGame, swapScore, disconnect) */
+/* web3.js — DreamStream PRO+ FINAL (mobile-safe) */
 
 async function waitForEthereum() {
   return new Promise((resolve) => {
     if (window.ethereum) return resolve(window.ethereum);
     let tries = 0;
     const i = setInterval(() => {
-      if (window.ethereum || tries > 40) {
+      if (window.ethereum || tries > 25) {
         clearInterval(i);
         resolve(window.ethereum);
       }
@@ -14,16 +14,38 @@ async function waitForEthereum() {
   });
 }
 
+/* try switch chain, if not exist then add */
 async function ensureSomniaChain() {
-  if (!window.ethereum || !window.SOMNIA_CHAIN) return false;
   try {
-    await window.ethereum.request({
-      method: "wallet_addEthereumChain",
-      params: [window.SOMNIA_CHAIN]
-    });
-    return true;
+    const current = await window.ethereum.request({ method: "eth_chainId" });
+    if (current === window.SOMNIA_CHAIN.chainId) return true;
+
+    // try switch
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: window.SOMNIA_CHAIN.chainId }]
+      });
+      return true;
+    } catch (switchErr) {
+      // if chain not found, add it
+      if (switchErr && switchErr.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [window.SOMNIA_CHAIN]
+          });
+          return true;
+        } catch (addErr) {
+          console.error("wallet_addEthereumChain failed:", addErr);
+          return false;
+        }
+      }
+      console.error("wallet_switchEthereumChain failed:", switchErr);
+      return false;
+    }
   } catch (err) {
-    console.warn("ensureSomniaChain:", err);
+    console.error("ensureSomniaChain error:", err);
     return false;
   }
 }
@@ -32,42 +54,30 @@ window.DreamWeb3 = {
   provider: null,
   signer: null,
   address: null,
-  connected: false,
 
   async connect() {
     await waitForEthereum();
+
     if (!window.ethereum) {
-      alert("MetaMask / Provider tidak ditemukan. Buka lewat browser MetaMask atau pasang ekstensi.");
+      alert("MetaMask tidak ditemukan. Buka lewat browser MetaMask.");
       return null;
     }
 
-    // pastikan chain Somnia tersedia (akan tampil permintaan di MetaMask)
-    await ensureSomniaChain();
+    // Pastikan chain Somnia tersedia / ter-switch
+    const okChain = await ensureSomniaChain();
+    if (!okChain) {
+      alert("Gagal menambahkan / mengalihkan ke jaringan Somnia Testnet.");
+      return null;
+    }
 
     try {
-      // jika ethers belum ada (pastikan libs/ethers.min.js di-upload)
-      if (!window.ethers) {
-        console.error("ethers.js tidak ditemukan. Pastikan libs/ethers.min.js tersedia.");
-        alert("Library ethers tidak ditemukan. Upload libs/ethers.min.js lalu refresh.");
-        return null;
-      }
-
       this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-
-      // listen account/chain changes
-      window.ethereum.on && window.ethereum.on("accountsChanged", (accs) => {
-        if (!accs || accs.length === 0) {
-          this.disconnectUI();
-        } else {
-          this.address = accs[0];
-          document.getElementById("addr-display").innerText = this.address;
-          this.refreshBalances().catch(console.error);
-        }
+      // listen chain/account changes to refresh state
+      window.ethereum.on && window.ethereum.on("accountsChanged", async () => {
+        await this._onAccountsChanged();
       });
-
-      window.ethereum.on && window.ethereum.on("chainChanged", (chainId) => {
-        // refresh balances/UI on chain change
-        setTimeout(() => this.refreshBalances().catch(console.error), 300);
+      window.ethereum.on && window.ethereum.on("chainChanged", async () => {
+        await this._onChainChanged();
       });
 
       await this.provider.send("eth_requestAccounts", []);
@@ -75,30 +85,58 @@ window.DreamWeb3 = {
       this.address = await this.signer.getAddress();
 
       document.getElementById("addr-display").innerText = this.address;
-      this.connected = true;
-
-      // UI: indicator
-      const ind = document.getElementById("live-indicator");
-      ind && ind.classList && ind.classList.replace("offline", "online");
-      ind && (ind.innerText = "ONLINE");
-
-      // enable start-button if exists (iframe start handled via postMessage)
-      const startBtn = document.getElementById("start-button");
-      if (startBtn) startBtn.disabled = false;
 
       await this.refreshBalances();
 
-      // jika toggle mock sudah dicentang -> start mock now
-      const toggle = document.getElementById("toggle-sim");
-      if (toggle && toggle.checked && window.startMockStream) {
-        window.startMockStream();
+      window.IS_CONNECTED = true;
+
+      const ind = document.getElementById("live-indicator");
+      ind.classList.remove("offline");
+      ind.classList.add("online");
+      ind.innerText = "ONLINE";
+
+      // Aktifkan mock stream hanya setelah benar-benar connected
+      if (document.getElementById("toggle-sim") && document.getElementById("toggle-sim").checked) {
+        if (typeof startMockStream === "function") startMockStream();
       }
 
       return this.address;
     } catch (err) {
-      console.error("connect error:", err);
-      alert("Gagal menghubungkan wallet. Periksa MetaMask & RPC Somnia.");
+      console.error("Connect error:", err);
+      alert("Gagal menghubungkan wallet atau mengambil alamat.");
       return null;
+    }
+  },
+
+  async _onAccountsChanged() {
+    try {
+      const accounts = await this.provider.send("eth_accounts", []);
+      if (!accounts || accounts.length === 0) {
+        // disconnected
+        window.IS_CONNECTED = false;
+        document.getElementById("addr-display").innerText = "Not connected";
+        const ind = document.getElementById("live-indicator");
+        ind.classList.remove("online");
+        ind.classList.add("offline");
+        ind.innerText = "OFFLINE";
+        // stop mock stream
+        if (typeof stopMockStream === "function") stopMockStream();
+      } else {
+        this.address = accounts[0];
+        document.getElementById("addr-display").innerText = this.address;
+        await this.refreshBalances();
+      }
+    } catch (e) {
+      console.error("onAccountsChanged handler error:", e);
+    }
+  },
+
+  async _onChainChanged() {
+    // refresh balances and UI
+    try {
+      await this.refreshBalances();
+    } catch (e) {
+      console.error("onChainChanged handler error:", e);
     }
   },
 
@@ -109,77 +147,53 @@ window.DreamWeb3 = {
       document.getElementById("balance-stt").innerText =
         Number(ethers.utils.formatEther(stt)).toFixed(4);
 
-      // get PAC token balance if configured
-      if (window.CONTRACTS && window.CONTRACTS.PAC_TOKEN && window.ABI && window.ABI.PAC) {
-        const pac = new ethers.Contract(window.CONTRACTS.PAC_TOKEN, window.ABI.PAC, this.provider);
-        const balPAC = await pac.balanceOf(this.address);
-        document.getElementById("balance-pac").innerText =
-          Number(ethers.utils.formatUnits(balPAC, 18)).toFixed(2);
-      } else {
-        document.getElementById("balance-pac").innerText = "-";
-      }
+      const pac = new ethers.Contract(window.CONTRACTS.PAC_TOKEN, window.ABI.PAC, this.provider);
+      const balPAC = await pac.balanceOf(this.address);
+      document.getElementById("balance-pac").innerText =
+        Number(ethers.utils.formatUnits(balPAC, 18)).toFixed(2);
     } catch (err) {
-      console.error("refreshBalances error:", err);
-      document.getElementById("balance-stt") && (document.getElementById("balance-stt").innerText = "-");
-      document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = "-");
+      console.error("Balance error:", err);
+      // fallback UI
+      document.getElementById("balance-stt").innerText = "-";
+      document.getElementById("balance-pac").innerText = "-";
     }
   },
 
+  /* Start game — kirim STT (demo) -> FAULT TOLERANT: tidak menunggu tx.wait() lama */
   async startGame() {
-    if (!this.signer) {
-      alert("Silakan connect wallet dulu.");
+    if (!this.provider || !this.signer) {
+      alert("Silakan hubungkan wallet terlebih dahulu.");
       return false;
     }
 
     try {
-      // cek balance STT dulu
-      const bal = await this.provider.getBalance(this.address);
-      if (ethers.BigNumber.from(bal).lt(ethers.utils.parseEther("0.01"))) {
-        alert("Saldo STT kurang (butuh minimal 0.01 STT untuk start game).");
-        return false;
-      }
-
-      // lakukan dummy tx ke diri sendiri sebagai fee
       const tx = await this.signer.sendTransaction({
-        to: this.address,
+        to: this.address, // dummy transfer ke diri sendiri sebagai simulasi biaya
         value: ethers.utils.parseEther("0.01")
       });
-      await tx.wait();
 
-      // refresh balances & UI
-      await this.refreshBalances();
+      // jangan await tx.wait() terlalu lama -> cukup simpan hash (demo)
+      console.log("StartGame tx hash:", tx.hash);
+      // update balance sedikit delay supaya RPC punya waktu
+      setTimeout(() => {
+        this.refreshBalances();
+      }, 3000);
 
       return true;
     } catch (err) {
       console.error("startGame tx error:", err);
-      alert("Transaksi start game gagal atau dibatalkan.");
       return false;
     }
   },
 
   async swapScore(score) {
-    if (score < 10) return "Minimal 10 poin untuk swap.";
-    const pacAmount = Math.floor(score / 10);
-    // saat ini hanya simulasi — implementasi onchain bisa ditambahkan
-    return `Swap simulasi berhasil → ${pacAmount} PAC`;
-  },
-
-  disconnectUI() {
-    this.connected = false;
-    this.address = null;
-    document.getElementById("addr-display") && (document.getElementById("addr-display").innerText = "Not connected");
-    document.getElementById("balance-stt") && (document.getElementById("balance-stt").innerText = "-");
-    document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = "-");
-    const ind = document.getElementById("live-indicator");
-    ind && ind.classList && ind.classList.replace("online", "offline");
-    ind && (ind.innerText = "OFFLINE");
-    if (window.stopMockStream) window.stopMockStream();
-    const startBtn = document.getElementById("start-button");
-    if (startBtn) startBtn.disabled = true;
+    if (score < 10) return "Minimal 10 poin.";
+    const pac = Math.floor(score / 10);
+    return `Swap simulasi: ${pac} PAC (tidak on-chain).`;
   }
 };
 
-// bind connect button
-document.getElementById("btn-connect") && (document.getElementById("btn-connect").onclick = async () => {
-  await window.DreamWeb3.connect();
-});
+// Connect button
+document.getElementById("btn-connect").onclick = async () => {
+  await DreamWeb3.connect();
+};
