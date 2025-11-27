@@ -18,10 +18,11 @@ const scoreEl = document.getElementById("score");
 
 let squares = [];
 
-/* ✅ SPAWN AMAN (FIX UTAMA) */
-let pacIndex = 22;    // PASTI DOT
-let ghostIndex = 116; // PASTI DOT
+/* ✅ POSISI PAKSA VALID */
+let pacIndex = 22;
+let ghostIndex = 23;
 
+/* ✅ BUAT GRID */
 function createGrid() {
   grid.innerHTML = "";
   squares = [];
@@ -37,11 +38,9 @@ function createGrid() {
 
   squares[pacIndex].classList.add("pac");
   squares[ghostIndex].classList.add("ghost");
-
-  console.log("PAC SPAWN:", pacIndex);
-  console.log("GHOST SPAWN:", ghostIndex);
 }
 
+/* ✅ PACMAN */
 function movePac(dir) {
   if (!running) return;
 
@@ -53,10 +52,7 @@ function movePac(dir) {
   if (dir === "up") next -= width;
   if (dir === "down") next += width;
 
-  if (
-    squares[next] &&
-    !squares[next].classList.contains("wall")
-  ) {
+  if (squares[next] && !squares[next].classList.contains("wall")) {
     pacIndex = next;
   }
 
@@ -68,6 +64,29 @@ function movePac(dir) {
     scoreEl.innerText = score;
   }
 }
+
+/* ✅ GHOST AUTO GERAK */
+function moveGhost() {
+  if (!running) return;
+
+  const directions = [-1, 1, -width, width];
+  const dir = directions[Math.floor(Math.random() * directions.length)];
+  const next = ghostIndex + dir;
+
+  if (squares[next] && !squares[next].classList.contains("wall")) {
+    squares[ghostIndex].classList.remove("ghost");
+    ghostIndex = next;
+    squares[ghostIndex].classList.add("ghost");
+  }
+
+  /* ✅ TABRAKAN */
+  if (ghostIndex === pacIndex) {
+    alert("GAME OVER");
+    running = false;
+  }
+}
+
+setInterval(moveGhost, 600);
 
 /* ✅ CONTROL */
 document.getElementById("btn-up").onclick = () => movePac("up");
