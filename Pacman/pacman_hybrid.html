@@ -1,44 +1,25 @@
 <!doctype html>
-<html>
+<html lang="id">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pacman Hybrid</title>
-
-  <link rel="stylesheet" href="pacman.css" />
-  <link rel="stylesheet" href="../game-controls.css" />
-
-  <style>
-    #grid-container {
-      width: 360px;
-      height: auto;
-      display: grid;
-      grid-template-columns: repeat(20, 18px);
-      margin: auto;
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="../pacman.css" />
 </head>
 <body>
+  <div class="game-wrap">
+    <div id="score">0</div>
+    <button id="start-button">Start Game (bayar 0.01 STT)</button>
+    <div id="grid-container" class="grid"></div>
 
-  <h3 style="text-align:center;color:white;margin-top:10px">Pacman Hybrid</h3>
-
-  <div id="score-box">
-    Score: <span id="score">0</span>
-  </div>
-
-  <button id="start-button" class="btn">Start Game</button>
-
-  <div id="grid-container"></div>
-
-  <!-- Mobile D-Pad -->
-  <div class="dpad">
-    <button id="btn-up" class="dpad-btn up">▲</button>
-    <div class="dpad-mid">
-      <button id="btn-left" class="dpad-btn left">◀</button>
-      <button id="btn-right" class="dpad-btn right">▶</button>
+    <div id="dpad">
+      <button id="btn-up">▲</button>
+      <div style="display:flex; gap:10px;">
+        <button id="btn-left">◀</button>
+        <button id="btn-right">▶</button>
+      </div>
+      <button id="btn-down">▼</button>
     </div>
-    <button id="btn-down" class="dpad-btn down">▼</button>
   </div>
 
   <script src="pacman_hybrid.js"></script>
