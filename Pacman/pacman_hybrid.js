@@ -1,3 +1,5 @@
+/* pacman_hybrid.js — SAFE FINAL BUILD */
+
 let score = 0;
 let running = false;
 
@@ -10,7 +12,7 @@ const layout = [
   1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,
   1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,1,1,0,1,1,1,1,1,0,0,1,1,1,1,1,0,1,1,1,
+  1,1,1,0,1,1,1,1,1,2,2,1,1,1,1,1,0,1,1,1,
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 ];
 
@@ -19,13 +21,13 @@ const scoreEl = document.getElementById("score");
 
 let squares = [];
 let pacIndex = 21;
-let ghostIndex = 58;
+let ghostIndex = 65;
 
 function createGrid() {
   grid.innerHTML = "";
   squares = [];
 
-  layout.forEach((cell) => {
+  layout.forEach((cell, i) => {
     const d = document.createElement("div");
     d.classList.add("cell");
 
@@ -40,9 +42,10 @@ function createGrid() {
   squares[ghostIndex].classList.add("ghost");
 
   score = 0;
-  scoreEl.innerText = "0";
+  scoreEl.innerText = 0;
 }
 
+/* ✅ GERAK PACMAN */
 function movePac(dir) {
   if (!running) return;
 
@@ -70,28 +73,23 @@ function collectDot() {
   }
 }
 
-/* D-PAD */
+/* ✅ CONTROL */
 document.getElementById("btn-up").onclick = () => movePac("up");
 document.getElementById("btn-down").onclick = () => movePac("down");
 document.getElementById("btn-left").onclick = () => movePac("left");
 document.getElementById("btn-right").onclick = () => movePac("right");
 
-/* ✅ START GAME → REQUEST KE PARENT (REAL TX SUDAH JALAN DI PARENT) */
-document.getElementById("start-button").onclick = () => {
-  window.parent.postMessage({ type: "REQUEST_START_GAME" }, "*");
+/* ✅ START GAME */
+document.getElementById("start-button").onclick = async () => {
+  if (window.Web3Somnia) {
+    const ok = await window.Web3Somnia.startGame();
+    if (ok) running = true;
+  } else {
+    running = true; // fallback debug mode
+  }
 };
 
-/* ✅ TERIMA KONFIRMASI DARI PARENT */
-window.addEventListener("message", (ev) => {
-  const data = ev.data || {};
-  if (data.type === "START_GAME_RESULT") {
-    if (data.success) {
-      running = true;
-      alert("Game dimulai!");
-    } else {
-      alert("Pembayaran STT gagal.");
-    }
-  }
-});
-
-window.onload = () => createGrid();
+/* ✅ PENTING: GRID DIJALANKAN */
+window.onload = () => {
+  createGrid();
+};
