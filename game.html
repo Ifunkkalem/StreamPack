@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Pacman Hybrid — Somnia</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="Pacman/pacman.css">
+</head>
+<body>
+
+  <div class="game-wrap">
+    <div id="lock-screen" class="lock">
+      <h3>Game Locked</h3>
+      <p>Silahkan Start Game dari Dashboard (perlu fee STT)</p>
+    </div>
+
+    <div id="game-ui" style="display:none;">
+      <div id="score">0</div>
+
+      <div id="grid-container"></div>
+
+      <div id="dpad">
+        <button id="btn-up">▲</button>
+        <div style="display:flex; gap:10px;">
+          <button id="btn-left">◀</button>
+          <button id="btn-right">▶</button>
+        </div>
+        <button id="btn-down">▼</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="Pacman/pacman.js"></script>
+</body>
+</html>
