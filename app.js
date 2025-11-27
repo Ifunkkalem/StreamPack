@@ -1,76 +1,63 @@
-/* app.js — DreamStream v2 FINAL (parent app) */
+/* app.js — FINAL parent (iframe bridge + UI helpers) */
 
-function refreshLeaderboard() {
-  const lb = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-  document.getElementById("my-total-score").innerText =
-    lb.reduce((sum, x) => sum + (x.score || 0), 0);
-
-  const ul = document.getElementById("leaderboard-list");
-  ul.innerHTML = "";
-  lb.slice(0, 10).forEach((item, i) => {
-    const li = document.createElement("li");
-    li.innerText = `${i + 1}. ${item.score}`;
-    ul.appendChild(li);
-  });
+function addActivity(msg) {
+  const el = document.getElementById("activity");
+  if (!el) return;
+  const now = new Date().toLocaleTimeString();
+  el.innerHTML += `<div>[${now}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
 }
 
-document.getElementById("btn-swap").onclick = () => {
-  const val = parseInt(document.getElementById("swap-input").value || 0);
-  if (isNaN(val) || val < 10 || val % 10 !== 0) {
-    document.getElementById("swap-status").innerText = "Minimal 10 dan kelipatan 10.";
-    return;
+// dipanggil oleh web3.js setelah connect sukses
+window.afterWalletConnected = function() {
+  // aktifkan mock stream hanya setelah wallet connect
+  if (document.getElementById("toggle-sim") && document.getElementById("toggle-sim").checked) {
+    if (typeof startMockStream === "function") startMockStream();
   }
-  const pac = val / 10;
-  document.getElementById("swap-status").innerText = `Swap simulasi → ${pac} PAC`;
+  // refresh UI balances
+  if (typeof DreamWeb3 !== "undefined") DreamWeb3.refreshBalances();
+  addActivity("[system] Wallet connected - mock stream enabled (if toggled)");
 };
 
-document.getElementById("btn-clear").onclick = () => {
-  document.getElementById("activity").innerHTML = "";
-};
-
-document.getElementById("btn-export").onclick = () => {
-  const txt = document.getElementById("activity").innerText;
-  const blob = new Blob([txt], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "dreamstream-log.txt";
-  a.click();
-};
-
-refreshLeaderboard();
-
-/* IFRAME COMMUNICATION — menerima event dari iframe (game) */
+// iframe ↔ parent messaging
 window.addEventListener("message", async (ev) => {
   const data = ev.data || {};
   if (!data.type) return;
 
+  // start game request from iframe
   if (data.type === "REQUEST_START_GAME") {
-    addActivity("[iframe] request start game");
+    addActivity("[iframe] REQUEST_START_GAME");
     const ok = await DreamWeb3.startGame();
-    // kirim balik ke iframe hasil
+    // reply to iframe
     const iframe = document.getElementById("pacman-iframe");
-    iframe && iframe.contentWindow && iframe.contentWindow.postMessage({
-      type: "START_GAME_RESULT",
-      ok: !!ok
-    }, "*");
-    addActivity(`[onchain] startGame result: ${ok ? "OK":"FAILED"}`);
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: "START_GAME_RESULT", success: !!ok }, "*");
+    }
   }
 
-  if (data.type === "POINTS_SUBMIT") {
+  // claim request from iframe: { type: "REQUEST_CLAIM_SCORE", points: N }
+  if (data.type === "REQUEST_CLAIM_SCORE") {
     const pts = Number(data.points || 0);
-    if (pts > 0) {
-      const lb = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-      lb.unshift({ score: pts, time: Date.now() });
-      localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0,200)));
-      refreshLeaderboard();
-      addActivity(`[iframe] submitted score ${pts}`);
+    addActivity(`[iframe] REQUEST_CLAIM_SCORE ${pts}`);
+    const res = await DreamWeb3.claimScore(pts);
+    const iframe = document.getElementById("pacman-iframe");
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: "CLAIM_RESULT", result: res }, "*");
     }
   }
 });
 
-function addActivity(msg) {
-  const div = document.getElementById("activity");
-  const now = new Date().toLocaleTimeString();
-  div.innerHTML += `<div>[${now}] ${msg}</div>`;
-  div.scrollTop = div.scrollHeight;
+// update leaderboard UI helper
+function refreshLeaderboardUI() {
+  const lb = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+  document.getElementById("my-total-score").innerText = (lb.reduce((s, x)=>s+(x.score||0),0)).toString();
+  const ul = document.getElementById("leaderboard-list");
+  if (!ul) return;
+  ul.innerHTML = "";
+  lb.slice(0, 10).forEach((it, i) => {
+    const li = document.createElement("li");
+    li.innerText = `${i+1}. ${it.score}`;
+    ul.appendChild(li);
+  });
 }
+refreshLeaderboardUI();
