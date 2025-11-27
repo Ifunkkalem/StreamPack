@@ -1,8 +1,11 @@
-/* pacman_hybrid.js — iframe game (communicates with parent) */
+/* pacman_hybrid.js — FINAL (iframe) */
+/* Iframe tidak boleh akses wallet langsung.
+   Semua request start/claim dikirim ke parent via postMessage.
+*/
 
 let score = 0;
 let running = false;
-let ghostInterval = null;
+let ghostInt = null;
 
 const width = 20;
 const layout = [
@@ -16,33 +19,30 @@ const layout = [
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 ];
 
-const gridContainer = document.getElementById("grid-container");
+const grid = document.getElementById("grid-container");
 const scoreEl = document.getElementById("score");
-
 let squares = [];
 let pacIndex = 20;
 let ghostIndex = 60;
 
-function createGrid() {
-  gridContainer.innerHTML = "";
+function createGrid(){
+  grid.innerHTML = "";
   squares = [];
-  gridContainer.style.gridTemplateColumns = `repeat(${width}, 14px)`;
-
-  for (let i=0;i<layout.length;i++){
-    const div = document.createElement("div");
-    div.className = "cell";
-    if (layout[i] === 1) div.classList.add("wall");
-    if (layout[i] === 0) div.classList.add("dot");
-    gridContainer.appendChild(div);
-    squares.push(div);
-  }
+  layout.forEach((c,i)=>{
+    const d = document.createElement("div");
+    d.className = "cell";
+    if (c === 1) d.classList.add("wall");
+    if (c === 0) d.classList.add("dot");
+    grid.appendChild(d);
+    squares.push(d);
+  });
   squares[pacIndex].classList.add("pac");
   squares[ghostIndex].classList.add("ghost");
-  score = 0;
-  scoreEl.innerText = score;
+  score = 0; scoreEl.innerText = 0;
+  running = false;
 }
 
-function movePac(dir) {
+function movePac(dir){
   if (!running) return;
   squares[pacIndex].classList.remove("pac");
   let next = pacIndex;
@@ -50,37 +50,29 @@ function movePac(dir) {
   if (dir === "right") next++;
   if (dir === "up") next -= width;
   if (dir === "down") next += width;
-  if (squares[next] && !squares[next].classList.contains("wall")) {
-    pacIndex = next;
-  }
+  if (squares[next] && !squares[next].classList.contains("wall")) pacIndex = next;
   squares[pacIndex].classList.add("pac");
   collectDot();
   checkGameOver();
 }
 
-function collectDot() {
-  if (squares[pacIndex].classList.contains("dot")) {
+function collectDot(){
+  if (squares[pacIndex].classList.contains("dot")){
     squares[pacIndex].classList.remove("dot");
     score++;
     scoreEl.innerText = score;
-    // notify parent of points increment
-    window.parent && window.parent.postMessage && window.parent.postMessage({
-      type: "SOMNIA_POINT_EVENT",
-      points: 1
-    }, "*");
   }
 }
 
-function ghostMove() {
+function ghostMove(){
   if (!running) return;
   const dirs = [-1,1,-width,width];
-  let best = ghostIndex;
-  let bestDist = Infinity;
-  dirs.forEach(d => {
+  let best = ghostIndex; let bestD=1e9;
+  dirs.forEach(d=>{
     const t = ghostIndex + d;
     if (!squares[t] || squares[t].classList.contains("wall")) return;
     const dist = Math.abs((t%width)-(pacIndex%width)) + Math.abs(Math.floor(t/width)-Math.floor(pacIndex/width));
-    if (dist < bestDist) { bestDist = dist; best = t; }
+    if (dist < bestD){ bestD=dist; best=t; }
   });
   squares[ghostIndex].classList.remove("ghost");
   ghostIndex = best;
@@ -88,53 +80,71 @@ function ghostMove() {
   checkGameOver();
 }
 
-function checkGameOver() {
-  if (pacIndex === ghostIndex) {
+function checkGameOver(){
+  if (pacIndex === ghostIndex){
     running = false;
-    clearInterval(ghostInterval);
+    clearInterval(ghostInt);
     alert("GAME OVER! Skor: " + score);
-    // submit to parent leaderboard (not on-chain)
-    window.parent && window.parent.postMessage && window.parent.postMessage({
-      type: "POINTS_SUBMIT",
-      points: score
-    }, "*");
-    resetGame();
+    // send point event to parent (saved to leaderboard in parent)
+    window.parent.postMessage({ type: "SOMNIA_POINT_EVENT", points: score }, "*");
+    // Game resets but player may choose to claim later
+    createGrid();
   }
 }
 
-function resetGame() {
-  score = 0;
-  scoreEl.innerText = 0;
-  pacIndex = 20;
-  ghostIndex = 60;
-  createGrid();
-}
+/* D-PAD */
+document.getElementById("btn-up").onclick = ()=>movePac("up");
+document.getElementById("btn-down").onclick = ()=>movePac("down");
+document.getElementById("btn-left").onclick = ()=>movePac("left");
+document.getElementById("btn-right").onclick = ()=>movePac("right");
 
-document.getElementById("btn-up").onclick = () => movePac("up");
-document.getElementById("btn-down").onclick = () => movePac("down");
-document.getElementById("btn-left").onclick = () => movePac("left");
-document.getElementById("btn-right").onclick = () => movePac("right");
-
+/* Start Game -> request parent to do on-chain tx */
 document.getElementById("start-button").onclick = () => {
-  // minta parent untuk proses pembayaran on-chain
-  window.parent && window.parent.postMessage && window.parent.postMessage({
-    type: "REQUEST_START_GAME"
-  }, "*");
+  // send request to parent
+  window.parent.postMessage({ type: "REQUEST_START_GAME" }, "*");
+  // show pending UI
+  document.getElementById("txStatus").innerText = "Waiting for on-chain start tx...";
 };
 
-// listen reply dari parent (start game result)
+/* Claim score button (you may add a separate button in iframe markup) */
+function claimScoreOnChain() {
+  if (score <= 0) { alert("Tidak ada skor untuk diklaim."); return; }
+  window.parent.postMessage({ type: "REQUEST_CLAIM_SCORE", points: score }, "*");
+  document.getElementById("txStatus").innerText = "Waiting for claim tx...";
+}
+
+/* Listen for parent replies */
 window.addEventListener("message", (ev) => {
   const d = ev.data || {};
+  if (!d.type) return;
   if (d.type === "START_GAME_RESULT") {
-    if (d.ok) {
+    if (d.success) {
+      document.getElementById("txStatus").innerText = "Start TX OK — game dimulai";
       running = true;
-      ghostInterval = setInterval(ghostMove, 400);
+      ghostInt = setInterval(ghostMove, 400);
     } else {
-      alert("Pembayaran STT gagal — tidak bisa mulai game.");
+      document.getElementById("txStatus").innerText = "Start TX gagal/canceled.";
+      running = false;
+    }
+  }
+  if (d.type === "CLAIM_RESULT") {
+    const r = d.result || {};
+    if (r.success) {
+      document.getElementById("txStatus").innerText = `Claim success: ${r.txHash}`;
+      // reset local score after successful claim
+      score = 0; scoreEl.innerText = 0;
+      createGrid();
+    } else {
+      document.getElementById("txStatus").innerText = `Claim failed: ${r.err?.message||r.err||'unknown'}`;
     }
   }
 });
 
-window.onload = () => {
-  createGrid();
-};
+/* optional: attach a small claim button inside iframe UI if you want */
+const claimBtn = document.createElement("button");
+claimBtn.innerText = "Claim Score On-Chain (0.001 STT fee)";
+claimBtn.style.marginTop = "6px";
+claimBtn.onclick = claimScoreOnChain;
+document.body.appendChild(claimBtn);
+
+window.onload = createGrid;
