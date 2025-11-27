@@ -1,85 +1,120 @@
-/* pacman_hybrid.js — DreamStream FINAL FIX */
+/* pacman_hybrid.js — FINAL SYNCED WITH IFRAME */
 
-let score = 0;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
 let running = false;
+let score = 0;
 
-const width = 20;
+let pacman = { x: 40, y: 40, vx: 0, vy: 0 };
+let dots = [];
 
-const layout = [
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
-  1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,
-  1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,
-  1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,1,1,0,1,1,1,1,1,2,2,1,1,1,1,1,0,1,1,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-];
-
-const grid = document.getElementById("grid-container");
-const scoreEl = document.getElementById("score");
-
-let squares = [];
-let pacIndex = 20;
-let ghostIndex = 60;
-
-function createGrid() {
-  grid.innerHTML = "";
-  squares = [];
-
-  layout.forEach((cell, i) => {
-    const d = document.createElement("div");
-    d.className = "cell";
-    if (cell === 1) d.classList.add("wall");
-    if (cell === 0) d.classList.add("dot");
-    grid.appendChild(d);
-    squares.push(d);
+// generate dots
+for (let i = 0; i < 25; i++) {
+  dots.push({
+    x: Math.random() * (canvas.width - 10),
+    y: Math.random() * (canvas.height - 10),
+    r: 4,
+    eaten: false
   });
-
-  squares[pacIndex].classList.add("pac");
-  squares[ghostIndex].classList.add("ghost");
-
-  score = 0;
-  scoreEl.innerText = 0;
 }
 
-function movePac(dir) {
+function drawPacman() {
+  ctx.beginPath();
+  ctx.arc(pacman.x, pacman.y, 8, 0, Math.PI * 2);
+  ctx.fillStyle = "yellow";
+  ctx.fill();
+}
+
+function drawDots() {
+  dots.forEach(d => {
+    if (!d.eaten) {
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#0f0";
+      ctx.fill();
+    }
+  });
+}
+
+function checkCollisions() {
+  dots.forEach(d => {
+    const dx = pacman.x - d.x;
+    const dy = pacman.y - d.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 10 && !d.eaten) {
+      d.eaten = true;
+      score++;
+      document.getElementById("score").innerText = score;
+
+      // kirim point ke parent
+      window.parent.postMessage({
+        type: "SOMNIA_POINT_EVENT",
+        points: 1
+      }, "*");
+    }
+  });
+}
+
+function update() {
   if (!running) return;
 
-  squares[pacIndex].classList.remove("pac");
-  let next = pacIndex;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (dir === "left") next--;
-  if (dir === "right") next++;
-  if (dir === "up") next -= width;
-  if (dir === "down") next += width;
+  pacman.x += pacman.vx;
+  pacman.y += pacman.vy;
 
-  if (squares[next] && !squares[next].classList.contains("wall")) {
-    pacIndex = next;
+  // batas tembok
+  if (pacman.x < 8) pacman.x = 8;
+  if (pacman.y < 8) pacman.y = 8;
+  if (pacman.x > canvas.width - 8) pacman.x = canvas.width - 8;
+  if (pacman.y > canvas.height - 8) pacman.y = canvas.height - 8;
+
+  drawDots();
+  drawPacman();
+  checkCollisions();
+
+  // GAME OVER jika semua dot habis
+  if (dots.every(d => d.eaten)) {
+    running = false;
+    window.parent.postMessage({
+      type: "GAME_OVER",
+      finalScore: score
+    }, "*");
   }
 
-  squares[pacIndex].classList.add("pac");
-  collectDot();
+  requestAnimationFrame(update);
 }
 
-function collectDot() {
-  if (squares[pacIndex].classList.contains("dot")) {
-    squares[pacIndex].classList.remove("dot");
-    score++;
-    scoreEl.innerText = score;
+/* KEYBOARD CONTROL */
+document.addEventListener("keydown", (e) => {
+  if (!running && e.key === "Enter") {
+    // minta izin start dari parent (Web3)
+    window.parent.postMessage({
+      type: "REQUEST_START_GAME"
+    }, "*");
+    return;
   }
-}
 
-/* D-PAD CONTROLS */
-document.getElementById("btn-up").onclick = () => movePac("up");
-document.getElementById("btn-down").onclick = () => movePac("down");
-document.getElementById("btn-left").onclick = () => movePac("left");
-document.getElementById("btn-right").onclick = () => movePac("right");
+  if (!running) return;
 
-/* START BUTTON */
-document.getElementById("start-button").onclick = async () => {
-  const ok = await window.Web3Somnia.startGame();
-  if (ok) running = true;
-};
+  if (e.key === "ArrowUp")    { pacman.vx = 0; pacman.vy = -2; }
+  if (e.key === "ArrowDown")  { pacman.vx = 0; pacman.vy = 2; }
+  if (e.key === "ArrowLeft")  { pacman.vx = -2; pacman.vy = 0; }
+  if (e.key === "ArrowRight") { pacman.vx = 2; pacman.vy = 0; }
+});
 
-window.onload = () => createGrid();
+/* LISTEN RESULT DARI PARENT */
+window.addEventListener("message", (ev) => {
+  const data = ev.data || {};
+
+  if (data.type === "START_GAME_RESULT") {
+    if (data.success) {
+      running = true;
+      requestAnimationFrame(update);
+    } else {
+      alert("Start game gagal (TX ditolak)");
+    }
+  }
+});
