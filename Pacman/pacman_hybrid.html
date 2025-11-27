@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pacman Hybrid</title>
+  <title>Pacman Hybrid — Somnia</title>
 
-  <!-- CSS LOCAL -->
+  <!-- NOTE: pacman.css di folder yang sama -->
   <link rel="stylesheet" href="pacman.css" />
 </head>
 <body>
@@ -29,8 +29,24 @@
     </div>
   </div>
 
-  <!-- JS LOCAL -->
+  <!-- script game -->
   <script src="pacman_hybrid.js"></script>
+
+  <!-- safe postMessage debug handler: show messages from parent -->
+  <script>
+    window.addEventListener('message', (ev) => {
+      // jangan percayai sumber tak dikenal; di dev kita terima semua untuk debug
+      const d = ev.data || {};
+      if (d.type === 'START_GAME_RESULT') {
+        if (d.success) {
+          // parent konfirmasi tx sukses -> mulai game sudah di-handle oleh script game start (fallback)
+          console.log('[iframe] START_GAME_RESULT success');
+        } else {
+          alert('Transaksi Start Game gagal / dibatalkan.');
+        }
+      }
+    });
+  </script>
 
 </body>
 </html>
