@@ -70,8 +70,7 @@ document.getElementById("btn-right").onclick = () => movePac("right");
    START GAME → REQUEST TX KE PARENT
 ========================= */
 document.getElementById("start-button").onclick = () => {
-  running = false;
-  window.parent.postMessage({ type: "REQUEST_START_GAME" }, "*");
+  requestStartGame(); // KIRIM KE DASHBOARD
 };
 
 /* =========================
