@@ -1,30 +1,22 @@
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #050b10;
+  background: #000;
   color: #fff;
 }
 
 .game-wrap {
   padding: 10px;
   background: #0b1117;
-  border-radius: 10px;
-  max-width: 420px;
-  margin: 20px auto;
-  text-align: center;
-}
-
-.lock {
-  padding: 40px 10px;
-  background: #111;
-  border-radius: 10px;
+  border-radius: 8px;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 #grid-container {
   display: grid;
   grid-template-columns: repeat(20, 14px);
   gap: 2px;
-  width: fit-content;
   margin: 10px auto;
 }
 
@@ -32,51 +24,41 @@ body {
   width: 14px;
   height: 14px;
   background: #0f2430;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
-.cell.wall {
-  background: #0b3a56;
-}
-
-.cell.dot::after {
-  content: "";
-  width: 4px;
-  height: 4px;
-  background: #ffd24d;
-  border-radius: 50%;
-  display: block;
-  margin: 5px auto;
-}
-
-.cell.pac::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  background: url("../assets/Ds.png") center/contain no-repeat;
-  display: block;
-  margin: 1px auto;
-}
+.wall { background: #0b3a56; }
+.dot { background: #ffd24d; }
+.pac { background: yellow; }
 
 #dpad {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
   align-items: center;
+  gap: 6px;
 }
 
 #dpad button {
-  width: 52px;
-  height: 38px;
-  font-weight: bold;
-  border-radius: 8px;
+  width: 44px;
+  height: 36px;
+  border-radius: 6px;
   background: #1f8f4a;
   color: #fff;
   border: none;
+  font-weight: bold;
+}
+
+#start-button {
+  width: 100%;
+  padding: 8px;
+  background: #2ecc71;
+  color: #042;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
 }
 
 #score {
-  font-size: 20px;
-  margin-bottom: 8px;
+  font-size: 16px;
 }
