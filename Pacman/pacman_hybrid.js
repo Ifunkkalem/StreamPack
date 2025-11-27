@@ -25,6 +25,10 @@ const layout = [
 
 let squares = [];
 
+/* ✅ SPAWN AMAN (FIX UTAMA) */
+let pacIndex = 22;    // PASTI DOT
+let ghostIndex = 116; // PASTI DOT
+
 function createGrid() {
   grid.innerHTML = "";
   squares = [];
