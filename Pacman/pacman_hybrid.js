@@ -17,12 +17,10 @@ const grid = document.getElementById("grid-container");
 const scoreEl = document.getElementById("score");
 
 let squares = [];
-
-/* ✅ POSISI PAKSA VALID */
 let pacIndex = 22;
-let ghostIndex = 23;
+let ghostIndex = 46;
 
-/* ✅ BUAT GRID */
+/* GRID */
 function createGrid() {
   grid.innerHTML = "";
   squares = [];
@@ -40,7 +38,7 @@ function createGrid() {
   squares[ghostIndex].classList.add("ghost");
 }
 
-/* ✅ PACMAN */
+/* PACMAN */
 function movePac(dir) {
   if (!running) return;
 
@@ -63,14 +61,16 @@ function movePac(dir) {
     score++;
     scoreEl.innerText = score;
   }
+
+  checkGameOver();
 }
 
-/* ✅ GHOST AUTO GERAK */
+/* ✅ GHOST TERLIHAT + GERAK */
 function moveGhost() {
   if (!running) return;
 
-  const directions = [-1, 1, -width, width];
-  const dir = directions[Math.floor(Math.random() * directions.length)];
+  const dirs = [-1, 1, -width, width];
+  const dir = dirs[Math.floor(Math.random() * dirs.length)];
   const next = ghostIndex + dir;
 
   if (squares[next] && !squares[next].classList.contains("wall")) {
@@ -79,22 +79,25 @@ function moveGhost() {
     squares[ghostIndex].classList.add("ghost");
   }
 
-  /* ✅ TABRAKAN */
+  checkGameOver();
+}
+
+function checkGameOver() {
   if (ghostIndex === pacIndex) {
     alert("GAME OVER");
     running = false;
   }
 }
 
-setInterval(moveGhost, 600);
+setInterval(moveGhost, 700);
 
-/* ✅ CONTROL */
+/* CONTROLS */
 document.getElementById("btn-up").onclick = () => movePac("up");
 document.getElementById("btn-down").onclick = () => movePac("down");
 document.getElementById("btn-left").onclick = () => movePac("left");
 document.getElementById("btn-right").onclick = () => movePac("right");
 
-/* ✅ START GAME */
+/* START GAME */
 document.getElementById("start-button").onclick = () => {
   running = true;
 };
