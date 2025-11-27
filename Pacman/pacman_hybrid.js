@@ -81,8 +81,8 @@ document.getElementById("btn-right").onclick = () => movePac("right");
 
 /* ✅ START GAME */
 document.getElementById("start-button").onclick = async () => {
-  if (window.Web3Somnia) {
-    const ok = await window.Web3Somnia.startGame();
+  if (window.parent && window.parent.DreamWeb3) {
+    const ok = await window.parent.DreamWeb3.startGame();
     if (ok) running = true;
   } else {
     running = true; // fallback debug mode
