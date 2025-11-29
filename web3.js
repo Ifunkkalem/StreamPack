@@ -115,24 +115,32 @@ window.DreamWeb3 = {
 
   // Claim score -> call reward.submitScore(points) payable 0.001 STT
   async claimScore(points) {
-    if (!this.signer) { addActivity("[claim] Wallet belum terhubung."); return { success:false }; }
-    try {
-      const reward = new ethers.Contract(window.CONTRACTS.REWARD, window.ABI.REWARD, this.signer);
-      const value = ethers.utils.parseEther("0.001"); // claim fee
-      const tx = await reward.submitScore(points, { value });
-      addActivity(`[onchain] claimScore tx sent: ${tx.hash}`);
-      const receipt = await tx.wait();
-      addActivity(`[onchain] claimScore confirmed: ${receipt.transactionHash}`);
-      // update balances (PAC should increase)
-      await this.refreshBalances();
-      return { success:true, txHash: receipt.transactionHash };
-    } catch (err) {
-      console.error("claimScore error:", err);
-      addActivity("[swap] Swap / Claim gagal atau dibatalkan.");
-      return { success:false, error: (err.message||err) };
-    }
+  if (!this.signer) return { success:false };
+
+  try {
+    const reward = new ethers.Contract(
+      window.CONTRACTS.REWARD,
+      window.ABI.REWARD,
+      this.signer
+    );
+
+    const tx = await reward.submitScore(points, {
+      value: ethers.utils.parseEther("0.001") // ✅ FEE STT WAJIB ADA
+    });
+
+    addActivity(`[onchain] claim sent: ${tx.hash}`);
+
+    const receipt = await tx.wait();
+    addActivity(`[onchain] claim confirmed: ${receipt.transactionHash}`);
+
+    await this.refreshBalances();
+    return { success:true, txHash: receipt.transactionHash };
+
+  } catch (err) {
+    console.error(err);
+    return { success:false, error: err.message };
   }
-};
+}
 
 /* quick connect button hookup (if element exists) */
 document.addEventListener("DOMContentLoaded", () => {
