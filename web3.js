@@ -151,27 +151,36 @@ window.DreamWeb3 = {
   },
 
   async startGame() {
-    if (!this.signer) {
-      alert("Silakan hubungkan wallet terlebih dahulu.");
-      return false;
-    }
-    try {
-      // dummy: kirim fee start game ke treasury (0.01 STT)
-      const tx = await this.signer.sendTransaction({
-        to: window.CONTRACTS.TREASURY,
-        value: ethers.utils.parseEther("0.01")
-      });
+  if (!this.provider || !this.signer) {
+    alert("Wallet belum benar-benar terhubung. Silakan connect ulang.");
+    return false;
+  }
 
-      console.log("startGame tx:", tx.hash);
-      await tx.wait();
-      // refresh balances after a short delay
-      setTimeout(()=> this.refreshBalances(), 2000);
-      return true;
-    } catch (err) {
-      console.error("startGame tx error:", err);
-      return false;
-    }
-  },
+  try {
+    // ✅ Pastikan signer benar-benar aktif
+    const addr = await this.signer.getAddress();
+    if (!addr) throw new Error("Signer tidak valid");
+
+    const tx = await this.signer.sendTransaction({
+      to: window.CONTRACTS.TREASURY, // ✅ KIRIM KE TREASURY, BUKAN KE DIRI SENDIRI
+      value: ethers.utils.parseEther("0.01")
+    });
+
+    console.log("StartGame tx hash:", tx.hash);
+
+    // ✅ Tunggu 1 konfirmasi biar benar-benar valid
+    await tx.wait(1);
+
+    setTimeout(() => {
+      this.refreshBalances();
+    }, 2000);
+
+    return true;
+  } catch (err) {
+    console.error("startGame tx error:", err);
+    return false;
+  }
+  }
 
   /**
    * requestSwap(points)
