@@ -1,9 +1,10 @@
+/* pacman_hybrid.js — FINAL (iframe side) */
+
 let score = 0;
 let running = false;
-let ghostTimer = null;
+let ghostInterval = null;
 
 const width = 20;
-
 const layout = [
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,
@@ -17,135 +18,107 @@ const layout = [
 
 const grid = document.getElementById("grid-container");
 const scoreEl = document.getElementById("score");
-
 let squares = [];
 let pacIndex = 21;
 let ghostIndex = 58;
 
-/* ================= GRID ================= */
-
 function createGrid() {
   grid.innerHTML = "";
   squares = [];
-
-  layout.forEach((cell) => {
+  grid.style.gridTemplateColumns = `repeat(${width}, 14px)`;
+  layout.forEach((cell, i) => {
     const d = document.createElement("div");
-    d.classList.add("cell");
-
+    d.className = "cell";
     if (cell === 1) d.classList.add("wall");
     if (cell === 0) d.classList.add("dot");
-
     grid.appendChild(d);
     squares.push(d);
   });
-
-  squares[pacIndex].classList.add("pac");
-  squares[ghostIndex].classList.add("ghost");
-
-  score = 0;
-  scoreEl.innerText = "0";
+  // place pac & ghost
+  if (squares[pacIndex]) squares[pacIndex].classList.add("pac");
+  if (squares[ghostIndex]) squares[ghostIndex].classList.add("ghost");
+  score = 0; updateScore();
 }
 
-/* ================= PACMAN ================= */
+function updateScore() { scoreEl.innerText = score; }
 
 function movePac(dir) {
   if (!running) return;
-
+  if (!squares[pacIndex]) return;
   squares[pacIndex].classList.remove("pac");
   let next = pacIndex;
-
   if (dir === "left") next--;
   if (dir === "right") next++;
   if (dir === "up") next -= width;
   if (dir === "down") next += width;
-
-  if (squares[next] && !squares[next].classList.contains("wall")) {
-    pacIndex = next;
-  }
-
+  if (squares[next] && !squares[next].classList.contains("wall")) pacIndex = next;
   squares[pacIndex].classList.add("pac");
   collectDot();
   checkGameOver();
 }
 
 function collectDot() {
-  if (squares[pacIndex].classList.contains("dot")) {
+  if (squares[pacIndex] && squares[pacIndex].classList.contains("dot")) {
     squares[pacIndex].classList.remove("dot");
     score++;
-    scoreEl.innerText = score;
+    updateScore();
   }
 }
 
-/* ================= GHOST ================= */
-
-function moveGhost() {
+function ghostMove() {
   if (!running) return;
-
-  const directions = [-1, 1, -width, width];
-  let dir = directions[Math.floor(Math.random() * directions.length)];
-  let next = ghostIndex + dir;
-
-  if (!squares[next] || squares[next].classList.contains("wall")) return;
-
-  squares[ghostIndex].classList.remove("ghost");
-  ghostIndex = next;
-  squares[ghostIndex].classList.add("ghost");
-
+  const dirs = [-1,1,-width,width];
+  let best = ghostIndex, bestDist = Infinity;
+  dirs.forEach(d => {
+    const t = ghostIndex + d;
+    if (!squares[t] || squares[t].classList.contains("wall")) return;
+    const dist = Math.abs((t%width)-(pacIndex%width)) + Math.abs(Math.floor(t/width)-Math.floor(pacIndex/width));
+    if (dist < bestDist) { bestDist = dist; best = t; }
+  });
+  if (squares[ghostIndex]) squares[ghostIndex].classList.remove("ghost");
+  ghostIndex = best;
+  if (squares[ghostIndex]) squares[ghostIndex].classList.add("ghost");
   checkGameOver();
 }
 
-/* ================= GAME OVER / WIN ================= */
-
 function checkGameOver() {
-  // kena ghost
   if (pacIndex === ghostIndex) {
-    endGame(false);
-  }
-
-  // semua dot habis → menang
-  if (!squares.some(s => s.classList.contains("dot"))) {
-    endGame(true);
-  }
-}
-
-function endGame(win) {
-  running = false;
-  clearInterval(ghostTimer);
-
-  // kirim score ke parent (dashboard)
-  if (window.parent) {
-    window.parent.postMessage({
-      type: "REQUEST_CLAIM_SCORE",
-      points: score,
-      win: win
-    }, "*");
-  }
-
-  alert(win ? "YOU WIN!" : "GAME OVER!");
-
-  setTimeout(() => {
+    running = false; clearInterval(ghostInterval);
+    alert("GAME OVER! Skor: " + score);
+    // minta parent menyimpan di leaderboard (lokal parent)
+    window.parent.postMessage({ type: "SOMNIA_POINT_EVENT", points: score }, "*");
+    // otomatis request claim onchain (jika user ingin)
+    // kita kirim REQUEST_CLAIM_SCORE agar parent menjalankan claimScore onchain
+    window.parent.postMessage({ type: "REQUEST_CLAIM_SCORE", points: score }, "*");
     resetGame();
-  }, 1200);
+  } else {
+    // check if all dots eaten
+    const remainingDots = squares.filter(s => s.classList.contains("dot")).length;
+    if (remainingDots === 0) {
+      running = false; clearInterval(ghostInterval);
+      alert("LEVEL COMPLETE! Skor: " + score);
+      window.parent.postMessage({ type: "SOMNIA_POINT_EVENT", points: score }, "*");
+      window.parent.postMessage({ type: "REQUEST_CLAIM_SCORE", points: score }, "*");
+      resetGame();
+    }
+  }
 }
 
 function resetGame() {
-  score = 0;
-  scoreEl.innerText = "0";
-  pacIndex = 21;
-  ghostIndex = 58;
-  createGrid(); // RESET MAP
+  // reset positions and grid
+  pacIndex = 21; ghostIndex = 58;
+  createGrid();
+  running = false;
+  clearInterval(ghostInterval);
 }
-
-/* ================= CONTROL ================= */
 
 document.getElementById("btn-up").onclick = () => movePac("up");
 document.getElementById("btn-down").onclick = () => movePac("down");
 document.getElementById("btn-left").onclick = () => movePac("left");
 document.getElementById("btn-right").onclick = () => movePac("right");
 
-/* ================= START GAME ================= */
-
 document.getElementById("start-button").onclick = () => {
+  // request parent to start game onchain (will trigger MetaMask)
   window.parent.postMessage({ type: "REQUEST_START_GAME" }, "*");
 };
 
@@ -154,14 +127,20 @@ window.addEventListener("message", (ev) => {
   if (data.type === "START_GAME_RESULT") {
     if (data.success) {
       running = true;
-      ghostTimer = setInterval(moveGhost, 450);
-      alert("Game dimulai!");
+      ghostInterval = setInterval(ghostMove, 400);
+      alert("Pembayaran diterima. Game dimulai!");
     } else {
-      alert("Pembayaran STT gagal.");
+      alert("Pembayaran STT gagal/batal. Game tidak dimulai.");
+    }
+  }
+  // claim result (informasi)
+  if (data.type === "CLAIM_RESULT") {
+    if (data.result && data.result.success) {
+      alert("CLAIM berhasil on-chain. TX: " + (data.result.txHash || '').slice(0,14)+"...");
+    } else {
+      alert("CLAIM gagal atau dibatalkan.");
     }
   }
 });
-
-/* ================= INIT ================= */
 
 window.onload = () => createGrid();
