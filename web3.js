@@ -180,7 +180,7 @@ window.DreamWeb3 = {
     console.error("startGame tx error:", err);
     return false;
   }
-}
+},
 
   /**
    * requestSwap(points)
