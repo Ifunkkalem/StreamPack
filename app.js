@@ -106,36 +106,34 @@ function refreshLeaderboardUI() {
 
 refreshLeaderboardUI();
 
-/* =========================================================
-   ✅ AUTO SWAP VIA DASHBOARD (USER BAYAR GAS 0.001 STT)
-========================================================= */
-async function doSwapFromDashboard() {
-  const input = document.getElementById("swap-input");
-  const status = document.getElementById("swap-status");
+// ✅ FIX PAKSA TOMBOL SWAP AGAR BENAR-BENAR ONCHAIN
 
-  const v = parseInt(input.value || "0");
-  if (!v || v < 10 || v % 10 !== 0) {
-    status.innerText = "Minimal 10 & kelipatan 10.";
+document.getElementById("btn-swap")?.addEventListener("click", async () => {
+  const input = document.getElementById("swap-input");
+  const pts = Number(input.value || 0);
+
+  if (!pts || pts < 10) {
+    alert("Masukkan minimal 10 point untuk swap.");
     return;
   }
 
-  status.innerText = "Menunggu konfirmasi wallet...";
-  addActivity(`[ui] Request swap ${v} point → PAC`);
+  addActivity(`[swap] Request swap ${pts} points`);
 
-  const res = await DreamWeb3.swapScoreOnchain(v);
+  try {
+    const res = await DreamWeb3.claimScore(pts);
+    if (res.success) {
+      addActivity(`[swap] ✅ SWAP SUCCESS: ${res.txHash}`);
+      alert("SWAP BERHASIL! PAC akan masuk setelah TX confirm.");
 
-  if (res.success) {
-    status.innerText = "✅ Swap berhasil & tercatat on-chain!";
-    addActivity("[swap] On-chain success: " + res.txHash);
-
-    // kurangi dari leaderboard lokal
-    const lb = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-    const me = lb.find(x => x.wallet === DreamWeb3.address);
-    if (me) me.score -= v;
-    localStorage.setItem("leaderboard", JSON.stringify(lb));
-
-    refreshLeaderboardUI();
-  } else {
-    status.innerText = "❌ Swap gagal / dibatalkan.";
+      input.value = "";
+      refreshLeaderboardUI(); // update UI
+    } else {
+      addActivity(`[swap] ❌ SWAP FAILED`);
+      alert("SWAP GAGAL atau dibatalkan.");
+    }
+  } catch (err) {
+    console.error(err);
+    addActivity("[swap] ❌ ERROR: " + err.message);
+    alert("ERROR swap: " + err.message);
   }
-}
+});
