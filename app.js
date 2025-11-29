@@ -184,13 +184,13 @@ window.addEventListener("message", async (ev) => {
       // kirim balik ke iframe
       const iframe = document.getElementById("pacman-iframe");
       if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: "START_GAME_RESULT", success: true }, "*");
+        iframe.contentWindow.postMessage({ type: "START_GAME_RESULT", success: true }, window.location.origin);
       }
       addActivity("[onchain] startGame result: success");
     } else {
       const iframe = document.getElementById("pacman-iframe");
       if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: "START_GAME_RESULT", success: false }, "*");
+        iframe.contentWindow.postMessage({ type: "START_GAME_RESULT", success: false }, window.location.origin);
       }
       addActivity("[onchain] startGame result: failed");
     }
