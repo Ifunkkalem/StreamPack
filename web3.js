@@ -1,12 +1,14 @@
-/* web3.js — FINAL (connect, balances, startGame, requestSwap) */
+/* ================================
+   DREAMSTREAM WEB3 FINAL FIX
+   ================================ */
 
 async function waitForEthereum() {
   return new Promise((resolve) => {
     if (window.ethereum) return resolve(window.ethereum);
     let tries = 0;
-    const i = setInterval(() => {
+    const t = setInterval(() => {
       if (window.ethereum || tries > 25) {
-        clearInterval(i);
+        clearInterval(t);
         resolve(window.ethereum);
       }
       tries++;
@@ -25,19 +27,17 @@ async function ensureSomniaChain() {
         params: [{ chainId: window.SOMNIA_CHAIN.chainId }]
       });
       return true;
-    } catch (switchErr) {
-      if (switchErr && switchErr.code === 4902) {
+    } catch (err) {
+      if (err.code === 4902) {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
           params: [window.SOMNIA_CHAIN]
         });
         return true;
       }
-      console.error("wallet_switchEthereumChain failed:", switchErr);
       return false;
     }
-  } catch (err) {
-    console.error("ensureSomniaChain error:", err);
+  } catch (e) {
     return false;
   }
 }
@@ -47,33 +47,33 @@ window.DreamWeb3 = {
   signer: null,
   address: null,
 
+  /* ================= CONNECT ================= */
   async connect() {
     await waitForEthereum();
+
     if (!window.ethereum) {
-      alert("MetaMask tidak ditemukan. Buka lewat browser MetaMask.");
+      alert("MetaMask tidak ditemukan.");
       return null;
     }
 
     const ok = await ensureSomniaChain();
     if (!ok) {
-      alert("Gagal menambahkan / switch ke Somnia Testnet.");
+      alert("Gagal switch ke Somnia Testnet.");
       return null;
     }
 
     try {
-      this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-
-      // register handlers
-      if (window.ethereum.on) {
-        window.ethereum.on("accountsChanged", async () => await this._onAccountsChanged());
-        window.ethereum.on("chainChanged", async () => await this._onChainChanged());
-      }
-
+      this.provider = new ethers.providers.Web3Provider(window.ethereum);
       await this.provider.send("eth_requestAccounts", []);
+
       this.signer = this.provider.getSigner();
       this.address = await this.signer.getAddress();
 
-      document.getElementById("addr-display").innerText = this.address;
+      window.IS_CONNECTED = true;
+
+      const addrEl = document.getElementById("addr-display");
+      if (addrEl) addrEl.innerText = this.address;
+
       const ind = document.getElementById("live-indicator");
       if (ind) {
         ind.classList.remove("offline");
@@ -83,174 +83,125 @@ window.DreamWeb3 = {
 
       await this.refreshBalances();
 
-      // notify parent app that wallet connected
-      if (typeof window.afterWalletConnected === "function") {
-        try { window.afterWalletConnected(); } catch(e) {}
-      }
-
       return this.address;
     } catch (err) {
-      console.error("Connect error:", err);
-      alert("Gagal menghubungkan wallet atau mengambil alamat.");
+      console.error("CONNECT ERROR:", err);
+      alert("Gagal connect wallet.");
       return null;
     }
   },
 
-  async _onAccountsChanged() {
-    try {
-      const accounts = await this.provider.send("eth_accounts", []);
-      if (!accounts || accounts.length === 0) {
-        // disconnected
-        this.address = null;
-        window.IS_CONNECTED = false;
-        document.getElementById("addr-display").innerText = "Not connected";
-        const ind = document.getElementById("live-indicator");
-        if (ind) {
-          ind.classList.remove("online");
-          ind.classList.add("offline");
-          ind.innerText = "OFFLINE";
-        }
-        if (typeof stopMockStream === "function") stopMockStream();
-      } else {
-        this.address = accounts[0];
-        document.getElementById("addr-display").innerText = this.address;
-        await this.refreshBalances();
-      }
-    } catch (e) {
-      console.error("onAccountsChanged handler error:", e);
-    }
-  },
-
-  async _onChainChanged() {
-    try {
-      await this.refreshBalances();
-    } catch (e) { console.error(e); }
-  },
-
+  /* ================= BALANCE ================= */
   async refreshBalances() {
-    if (!this.provider || !this.address) {
-      document.getElementById("balance-stt") && (document.getElementById("balance-stt").innerText = "-");
-      document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = "-");
-      return;
-    }
+    if (!this.provider || !this.address) return;
+
     try {
       const stt = await this.provider.getBalance(this.address);
-      document.getElementById("balance-stt").innerText =
-        Number(ethers.utils.formatEther(stt)).toFixed(4);
+      const sttEl = document.getElementById("balance-stt");
+      if (sttEl) {
+        sttEl.innerText = Number(ethers.utils.formatEther(stt)).toFixed(4);
+      }
 
-      const pac = new ethers.Contract(window.CONTRACTS.PAC_TOKEN, window.ABI.PAC, this.provider);
+      const pac = new ethers.Contract(
+        window.CONTRACTS.PAC_TOKEN,
+        window.ABI.PAC,
+        this.provider
+      );
+
       const balPAC = await pac.balanceOf(this.address);
-      const decimals = 18;
-      document.getElementById("balance-pac").innerText =
-        Number(ethers.utils.formatUnits(balPAC, decimals)).toFixed(2);
-    } catch (err) {
-      console.error("Balance error:", err);
-      document.getElementById("balance-stt").innerText = "-";
-      document.getElementById("balance-pac").innerText = "-";
+      const pacEl = document.getElementById("balance-pac");
+      if (pacEl) {
+        pacEl.innerText = Number(
+          ethers.utils.formatUnits(balPAC, 18)
+        ).toFixed(2);
+      }
+    } catch (e) {
+      console.error("BALANCE ERROR:", e);
     }
   },
 
+  /* ================= START GAME ================= */
   async startGame() {
-  if (!this.provider || !this.signer) {
-    alert("Wallet belum benar-benar terhubung. Silakan connect ulang.");
-    return false;
-  }
+    if (!window.ethereum || !this.provider || !this.signer) {
+      alert("Wallet belum siap.");
+      return false;
+    }
 
-  try {
-    // ✅ Pastikan signer benar-benar aktif
-    const addr = await this.signer.getAddress();
-    if (!addr) throw new Error("Signer tidak valid");
+    try {
+      const addr = await this.signer.getAddress();
+      const bal = await this.provider.getBalance(addr);
 
-    const tx = await this.signer.sendTransaction({
-      to: window.CONTRACTS.TREASURY, // ✅ KIRIM KE TREASURY, BUKAN KE DIRI SENDIRI
-      value: ethers.utils.parseEther("0.01")
-    });
+      if (bal.lt(ethers.utils.parseEther("0.01"))) {
+        alert("STT tidak cukup (butuh 0.01 STT)");
+        return false;
+      }
 
-    console.log("StartGame tx hash:", tx.hash);
+      const tx = await this.signer.sendTransaction({
+        to: window.CONTRACTS.TREASURY,
+        value: ethers.utils.parseEther("0.01")
+      });
 
-    // ✅ Tunggu 1 konfirmasi biar benar-benar valid
-    await tx.wait(1);
+      console.log("START GAME TX:", tx.hash);
+      await tx.wait(1);
 
-    setTimeout(() => {
-      this.refreshBalances();
-    }, 2000);
+      setTimeout(() => this.refreshBalances(), 1500);
+      return true;
+    } catch (err) {
+      console.error("START GAME FAILED:", err);
+      alert("Pembayaran STT gagal / dibatalkan.");
+      return false;
+    }
+  },
 
-    return true;
-  } catch (err) {
-    console.error("startGame tx error:", err);
-    return false;
-  }
-},
-
-  /**
-   * requestSwap(points)
-   * - verify points
-   * - compute pac amount
-   * - if FEE_STT configured -> send fee STT to TREASURY
-   * - save swapRequest in localStorage so owner/backend dapat memproses
-   */
+  /* ================= SWAP ================= */
   async requestSwap(points) {
     if (!this.signer || !this.address) {
-      return { success: false, message: "Connect wallet dulu." };
+      return { success: false, message: "Wallet belum connect." };
     }
+
     const pts = Number(points || 0);
-    if (!pts || pts < 10) {
-      return { success: false, message: "Minimal 10 poin untuk swap." };
+    if (pts < window.SWAP_CONFIG.RATE) {
+      return { success: false, message: "Poin belum cukup." };
     }
 
-    const pacAmount = Math.floor(pts / window.SWAP_CONFIG.RATE);
-    if (pacAmount <= 0) {
-      return { success: false, message: "Tidak ada PAC yang didapatkan." };
-    }
+    const pacAmount = Math.floor(
+      pts / window.SWAP_CONFIG.RATE
+    );
 
-    // optional fee STT payment
-    const fee = window.SWAP_CONFIG.FEE_STT || null;
     try {
-      if (fee) {
+      if (window.SWAP_CONFIG.FEE_STT) {
         const tx = await this.signer.sendTransaction({
           to: window.CONTRACTS.TREASURY,
-          value: ethers.utils.parseEther(fee)
+          value: ethers.utils.parseEther(window.SWAP_CONFIG.FEE_STT)
         });
-        console.log("swap fee tx:", tx.hash);
+
+        console.log("SWAP FEE TX:", tx.hash);
         await tx.wait();
       }
-    } catch (feeErr) {
-      console.error("Swap fee tx failed:", feeErr);
-      return { success: false, message: "Pembayaran fee STT gagal atau dibatalkan." };
+    } catch (err) {
+      console.error("SWAP FEE FAILED:", err);
+      return { success: false, message: "Fee swap dibatalkan." };
     }
 
-    // Create swap request object (owner/backend must process and send PAC on-chain)
-    const swapRequest = {
-      id: `swap_${Date.now()}`,
+    const req = {
+      id: "swap_" + Date.now(),
       wallet: this.address,
       points: pts,
       pac: pacAmount,
-      timestamp: Date.now(),
+      time: Date.now(),
       status: "pending"
     };
 
-    // Save to localStorage (owner can read localStorage when using same browser),
-    // but better: send to backend. We'll save to array of requests.
-    let arr = JSON.parse(localStorage.getItem("swap_requests") || "[]");
-    arr.unshift(swapRequest);
-    localStorage.setItem("swap_requests", JSON.stringify(arr));
+    const data = JSON.parse(localStorage.getItem("swap_requests") || "[]");
+    data.unshift(req);
+    localStorage.setItem("swap_requests", JSON.stringify(data));
 
-    // also save to leaderboard: remove points used
-    let lb = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-    // we assume current wallet has one entry; here we only push claim record
-    lb.unshift({ score: 0, swapped: pts, time: Date.now() });
-    localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0, 200)));
-
-    // notify UI
-    if (typeof addActivity === "function") {
-      addActivity(`[swap] Request saved: ${swapRequest.id} → ${pacAmount} PAC (pending)`);
-    }
-
-    return { success: true, pac: pacAmount, request: swapRequest };
+    return { success: true, pac: pacAmount, request: req };
   }
 };
 
-// connect button binding
+/* ================= BUTTON BINDING ================= */
+
 document.getElementById("btn-connect").onclick = async () => {
   await DreamWeb3.connect();
 };
