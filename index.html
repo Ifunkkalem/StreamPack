@@ -9,129 +9,31 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Trebuchet MS', sans-serif;
-    }
+    * {margin:0;padding:0;box-sizing:border-box;font-family:'Trebuchet MS',sans-serif;}
+    body {width:100vw;height:100vh;overflow:hidden;background:radial-gradient(circle at top,#2b0033,#0a0010);color:#fff;}
 
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: radial-gradient(circle at top, #2b0033, #0a0010);
-      color: #fff;
-    }
+    .bubble{position:absolute;bottom:-100px;background:rgba(255,140,0,0.2);border-radius:50%;animation:floatUp 12s infinite ease-in;}
+    @keyframes floatUp{from{transform:translateY(0);}to{transform:translateY(-120vh);}}
 
-    .bubble {
-      position: absolute;
-      bottom: -100px;
-      background: rgba(255, 140, 0, 0.2);
-      border-radius: 50%;
-      animation: floatUp 12s infinite ease-in;
-    }
+    .screen{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;text-align:center;}
+    h1{font-size:42px;color:orange;text-shadow:0 0 10px purple,0 0 20px purple;}
+    h2{font-size:22px;color:#c77dff;margin-bottom:20px;}
 
-    @keyframes floatUp {
-      from { transform: translateY(0); }
-      to { transform: translateY(-120vh); }
-    }
+    .menu-box{background:rgba(20,0,30,0.8);border:2px solid orange;border-radius:16px;padding:30px 40px;box-shadow:0 0 20px purple;min-width:320px;}
+    .menu-box input{width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:12px;text-align:center;font-size:16px;}
+    .menu-box button{width:100%;padding:12px;margin:8px 0;font-size:16px;font-weight:bold;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(90deg,orange,purple);color:white;}
+    .wallet-box{font-size:13px;color:#ffb703;margin-bottom:8px;}
 
-    .screen {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-      position: relative;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 42px;
-      color: orange;
-      text-shadow: 0 0 10px purple, 0 0 20px purple;
-      margin-bottom: 8px;
-    }
-
-    h2 {
-      font-size: 22px;
-      color: #c77dff;
-      margin-bottom: 30px;
-    }
-
-    .menu-box {
-      background: rgba(20, 0, 30, 0.8);
-      border: 2px solid orange;
-      border-radius: 16px;
-      padding: 30px 40px;
-      box-shadow: 0 0 20px purple;
-      min-width: 300px;
-    }
-
-    .menu-box input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin-bottom: 12px;
-      text-align: center;
-      font-size: 16px;
-      outline: none;
-    }
-
-    .menu-box button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      background: linear-gradient(90deg, orange, purple);
-      color: white;
-      transition: 0.2s;
-    }
-
-    .menu-box button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 10px orange;
-    }
-
-    .wallet-box {
-      font-size: 14px;
-      margin-bottom: 12px;
-      color: #ffb703;
-    }
-
-    .hidden { display: none; }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: black;
-    }
+    .hidden{display:none;}
+    iframe{width:100%;height:100%;border:none;background:black;}
   </style>
 </head>
 <body>
 
-<!-- 🎈 Bubble Effects -->
 <script>
-  for (let i = 0; i < 25; i++) {
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.style.width = bubble.style.height = Math.random() * 40 + 20 + "px";
-    bubble.style.left = Math.random() * 100 + "vw";
-    bubble.style.animationDuration = Math.random() * 6 + 6 + "s";
-    document.body.appendChild(bubble);
-  }
+  for(let i=0;i<25;i++){const b=document.createElement("div");b.className="bubble";b.style.width=b.style.height=Math.random()*40+20+"px";b.style.left=Math.random()*100+"vw";b.style.animationDuration=Math.random()*6+6+"s";document.body.appendChild(b);}
 </script>
 
-<!-- 🎃 MAIN MENU -->
 <div id="menuScreen" class="screen">
   <h1>WELCOME SOMNIA HALLOWEEN</h1>
   <h2>PAC-MAN EDITION</h2>
@@ -139,119 +41,102 @@
   <div class="menu-box">
     <div id="walletStatus" class="wallet-box">Wallet: Not Connected</div>
 
-    <input 
-      id="displayNameInput" 
-      type="text" 
-      maxlength="12" 
-      placeholder="Enter Display Name (Max 12)"
-    />
+    <input id="displayNameInput" maxlength="12" placeholder="Enter Display Name (Max 12)" />
 
     <button onclick="connectWallet()">CONNECT WALLET</button>
     <button onclick="saveName()">EDIT DISPLAY NAME</button>
-    <button onclick="openPlay()">PLAY</button>
+    <button onclick="startPlay()">PLAY (0.01 SOMI)</button>
     <button onclick="openLeaderboard()">LEADERBOARD</button>
     <button onclick="quitGame()">QUIT</button>
   </div>
 </div>
 
-<!-- 🎮 PLAY -->
 <div id="playScreen" class="screen hidden">
-  <iframe src="Pacman/pacman.html"></iframe>
+  <iframe id="gameFrame" src=""></iframe>
 </div>
 
-<!-- 🏆 LEADERBOARD -->
 <div id="leaderboardScreen" class="screen hidden">
   <iframe src="leaderboard.html"></iframe>
 </div>
 
 <script>
-  /* ========= WALLET CONFIG ========= */
-  const SOMNIA = {
-    chainId: "0x13a7",
-    chainName: "Somnia Mainnet",
-    nativeCurrency: { name: "SOMI", symbol: "SOMI", decimals: 18 },
-    rpcUrls: ["https://api.infra.mainnet.somnia.network"],
-    blockExplorerUrls: ["https://shannon-explorer.somnia.network"]
-  };
+/* ========= SOMNIA MAINNET + CONTRACT ========= */
+const SOMNIA = {
+  chainId: "0x13a7",
+  chainName: "Somnia Mainnet",
+  nativeCurrency: { name: "SOMI", symbol: "SOMI", decimals: 18 },
+  rpcUrls: ["https://api.infra.mainnet.somnia.network"],
+  blockExplorerUrls: ["https://shannon-explorer.somnia.network"]
+};
 
-  let WALLET = null;
+const LEADERBOARD_CONTRACT = "0xD76b767102f2610b0C97FEE84873c1fAA4c7C365";
+const ABI = [{"inputs":[{"internalType":"address","name":"_treasury","type":"address"},{"internalType":"uint256","name":"_startFeeWei","type":"uint256"},{"internalType":"uint256","name":"_maxScorePerSubmit","type":"uint256"}],"type":"constructor"},{"inputs":[],"name":"startGame","outputs":[],"stateMutability":"payable","type":"function"}];
 
-  async function connectWallet() {
-    if (!window.ethereum) {
-      alert("Install MetaMask dulu!");
-      return;
-    }
+let WALLET=null, PROVIDER=null, SIGNER=null, CONTRACT=null;
 
-    await ethereum.request({ method: "eth_requestAccounts" });
+/* ========= CONNECT ========= */
+async function connectWallet(){
+  if(!window.ethereum)return alert("Install MetaMask!");
+  await ethereum.request({method:"eth_requestAccounts"});
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const network = await provider.getNetwork();
-
-    if (network.chainId !== 5031) {
-      try {
-        await ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [SOMNIA]
-        });
-      } catch (e) {
-        alert("Gagal switch ke Somnia Mainnet");
-        return;
-      }
-    }
-
-    const signer = provider.getSigner();
-    WALLET = await signer.getAddress();
-
-    document.getElementById("walletStatus").innerText =
-      "Wallet: " + WALLET.slice(0, 6) + "..." + WALLET.slice(-4);
-
-    // Load nama khusus wallet ini
-    const savedName = localStorage.getItem("name_" + WALLET);
-    if (savedName) {
-      document.getElementById("displayNameInput").value = savedName;
-    }
+  PROVIDER=new ethers.providers.Web3Provider(window.ethereum);
+  const net=await PROVIDER.getNetwork();
+  if(net.chainId!==5031){
+    await ethereum.request({method:"wallet_addEthereumChain",params:[SOMNIA]});
   }
 
-  function saveName() {
-    if (!WALLET) {
-      alert("Connect wallet dulu!");
-      return;
-    }
+  SIGNER=PROVIDER.getSigner();
+  WALLET=await SIGNER.getAddress();
 
-    let name = displayNameInput.value.trim();
-    if (!name) return alert("Nama tidak boleh kosong!");
-    if (name.length > 12) return alert("Max 12 karakter!");
+  CONTRACT=new ethers.Contract(LEADERBOARD_CONTRACT,ABI,SIGNER);
 
-    localStorage.setItem("name_" + WALLET, name);
-    alert("Display Name disimpan untuk wallet ini!");
-  }
+  walletStatus.innerText="Wallet: "+WALLET.slice(0,6)+"..."+WALLET.slice(-4);
 
-  function openPlay() {
-    if (!WALLET) {
-      alert("Connect wallet dulu!");
-      return;
-    }
+  const saved=localStorage.getItem("name_"+WALLET);
+  if(saved) displayNameInput.value=saved;
+}
 
-    const name = localStorage.getItem("name_" + WALLET);
-    if (!name) {
-      alert("Isi Display Name dulu!");
-      return;
-    }
+/* ========= SAVE NAME ========= */
+function saveName(){
+  if(!WALLET)return alert("Connect wallet dulu!");
+  const n=displayNameInput.value.trim();
+  if(!n)return alert("Nama kosong!");
+  if(n.length>12)return alert("Max 12 karakter!");
+  localStorage.setItem("name_"+WALLET,n);
+  alert("Display name disimpan!");
+}
 
+/* ========= START GAME ONCHAIN ========= */
+async function startPlay(){
+  if(!WALLET)return alert("Connect wallet dulu!");
+  if(!localStorage.getItem("name_"+WALLET))return alert("Isi nama dulu!");
+
+  try{
+    const tx=await CONTRACT.startGame({
+      value: ethers.utils.parseEther("0.01")
+    });
+
+    alert("Transaksi dikirim...");
+    await tx.wait();
+
+    // ✅ TX SUKSES → GAME DIBUKA
     menuScreen.classList.add("hidden");
     playScreen.classList.remove("hidden");
-  }
+    document.getElementById("gameFrame").src="Pacman/pacman.html";
 
-  function openLeaderboard() {
-    menuScreen.classList.add("hidden");
-    leaderboardScreen.classList.remove("hidden");
+  }catch(e){
+    alert("Start game gagal / dibatalkan!");
+    console.error(e);
   }
+}
 
-  function quitGame() {
-    window.open("about:blank", "_self");
-    window.close();
-  }
+/* ========= NAV ========= */
+function openLeaderboard(){
+  menuScreen.classList.add("hidden");
+  leaderboardScreen.classList.remove("hidden");
+}
+function quitGame(){window.open("about:blank","_self");window.close();}
 </script>
 
 </body>
-      </html>
+</html>
