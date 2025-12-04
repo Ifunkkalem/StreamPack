@@ -1,6 +1,10 @@
-/* ================================
-   DREAMSTREAM WEB3 FINAL FIX
-   ================================ */
+/* web3.js — FINAL (parent, Somnia MAINNET) */
+/* Requirements: config.js must provide:
+   - window.SOMNIA_CHAIN (chainId mainnet)
+   - window.CONTRACTS.LEADERBOARD (address of PacmanLeaderboard)
+   - window.CONTRACTS.TREASURY (owner/treasury)
+   - window.PACMAN_ABI (ABI array)
+*/
 
 async function waitForEthereum() {
   return new Promise((resolve) => {
@@ -20,24 +24,31 @@ async function ensureSomniaChain() {
   try {
     const current = await window.ethereum.request({ method: "eth_chainId" });
     if (current === window.SOMNIA_CHAIN.chainId) return true;
-
+    // try switch
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: window.SOMNIA_CHAIN.chainId }]
       });
       return true;
-    } catch (err) {
-      if (err.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [window.SOMNIA_CHAIN]
-        });
-        return true;
+    } catch (switchErr) {
+      if (switchErr && switchErr.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [window.SOMNIA_CHAIN]
+          });
+          return true;
+        } catch (addErr) {
+          console.error("wallet_addEthereumChain failed:", addErr);
+          return false;
+        }
       }
+      console.error("wallet_switchEthereumChain failed:", switchErr);
       return false;
     }
-  } catch (e) {
+  } catch (err) {
+    console.error("ensureSomniaChain error:", err);
     return false;
   }
 }
@@ -47,30 +58,32 @@ window.DreamWeb3 = {
   signer: null,
   address: null,
 
-  /* ================= CONNECT ================= */
   async connect() {
     await waitForEthereum();
-
     if (!window.ethereum) {
-      alert("MetaMask tidak ditemukan.");
+      alert("Please open this site in MetaMask browser or enable MetaMask extension.");
       return null;
     }
 
     const ok = await ensureSomniaChain();
     if (!ok) {
-      alert("Gagal switch ke Somnia Testnet.");
+      alert("Cannot switch/add Somnia chain in MetaMask. Please add manually.");
       return null;
     }
 
     try {
-      this.provider = new ethers.providers.Web3Provider(window.ethereum);
-      await this.provider.send("eth_requestAccounts", []);
+      this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
 
+      if (window.ethereum.on) {
+        window.ethereum.on("accountsChanged", async () => await this._onAccountsChanged());
+        window.ethereum.on("chainChanged", async () => await this._onChainChanged());
+      }
+
+      await this.provider.send("eth_requestAccounts", []);
       this.signer = this.provider.getSigner();
       this.address = await this.signer.getAddress();
 
-      window.IS_CONNECTED = true;
-
+      // update UI (parent must have element #addr-display)
       const addrEl = document.getElementById("addr-display");
       if (addrEl) addrEl.innerText = this.address;
 
@@ -83,125 +96,139 @@ window.DreamWeb3 = {
 
       await this.refreshBalances();
 
+      // notify app that wallet is ready
+      if (typeof window.afterWalletConnected === "function") {
+        try { window.afterWalletConnected(); } catch(e) { console.warn(e); }
+      }
+
       return this.address;
     } catch (err) {
-      console.error("CONNECT ERROR:", err);
-      alert("Gagal connect wallet.");
+      console.error("Connect error:", err);
+      alert("Failed to connect wallet.");
       return null;
     }
   },
 
-  /* ================= BALANCE ================= */
-  async refreshBalances() {
-    if (!this.provider || !this.address) return;
-
+  async _onAccountsChanged() {
     try {
-      const stt = await this.provider.getBalance(this.address);
-      const sttEl = document.getElementById("balance-stt");
-      if (sttEl) {
-        sttEl.innerText = Number(ethers.utils.formatEther(stt)).toFixed(4);
-      }
-
-      const pac = new ethers.Contract(
-        window.CONTRACTS.PAC_TOKEN,
-        window.ABI.PAC,
-        this.provider
-      );
-
-      const balPAC = await pac.balanceOf(this.address);
-      const pacEl = document.getElementById("balance-pac");
-      if (pacEl) {
-        pacEl.innerText = Number(
-          ethers.utils.formatUnits(balPAC, 18)
-        ).toFixed(2);
+      const accounts = await this.provider.send("eth_accounts", []);
+      if (!accounts || accounts.length === 0) {
+        // disconnected
+        this.address = null;
+        const addrEl = document.getElementById("addr-display");
+        if (addrEl) addrEl.innerText = "Not connected";
+        const ind = document.getElementById("live-indicator");
+        if (ind) { ind.classList.remove("online"); ind.classList.add("offline"); ind.innerText = "OFFLINE"; }
+        if (typeof stopMockStream === "function") stopMockStream();
+      } else {
+        this.address = accounts[0];
+        const addrEl = document.getElementById("addr-display");
+        if (addrEl) addrEl.innerText = this.address;
+        await this.refreshBalances();
       }
     } catch (e) {
-      console.error("BALANCE ERROR:", e);
+      console.error("onAccountsChanged error:", e);
     }
   },
 
-  /* ================= START GAME ================= */
+  async _onChainChanged() {
+    try {
+      await this.refreshBalances();
+    } catch (e) { console.error(e); }
+  },
+
+  async refreshBalances() {
+    if (!this.provider || !this.address) {
+      document.getElementById("balance-stt") && (document.getElementById("balance-stt").innerText = "-");
+      document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = "-");
+      return;
+    }
+    try {
+      const bal = await this.provider.getBalance(this.address);
+      document.getElementById("balance-stt") && (document.getElementById("balance-stt").innerText = Number(ethers.utils.formatEther(bal)).toFixed(4));
+      // PAC token may not exist in this mainnet scenario (we're using leaderboard only)
+      if (window.CONTRACTS && window.CONTRACTS.PAC_TOKEN) {
+        const pac = new ethers.Contract(window.CONTRACTS.PAC_TOKEN, window.ABI && window.ABI.PAC ? window.ABI.PAC : [], this.provider);
+        try {
+          const b = await pac.balanceOf(this.address);
+          const dec = (await pac.decimals?.()) || 18;
+          document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = Number(ethers.utils.formatUnits(b, dec)).toFixed(2));
+        } catch(e) {
+          document.getElementById("balance-pac") && (document.getElementById("balance-pac").innerText = "-");
+        }
+      }
+    } catch (err) {
+      console.error("refreshBalances error:", err);
+    }
+  },
+
+  /* Start game: send start fee (0.01 SOMI) to the leaderboard contract or treasury */
   async startGame() {
-    if (!window.ethereum || !this.provider || !this.signer) {
-      alert("Wallet belum siap.");
+    if (!this.provider || !this.signer) {
+      alert("Wallet not connected.");
       return false;
     }
-
     try {
-      const addr = await this.signer.getAddress();
-      const bal = await this.provider.getBalance(addr);
-
-      if (bal.lt(ethers.utils.parseEther("0.01"))) {
-        alert("STT tidak cukup (butuh 0.01 STT)");
+      // default pay to leaderboard contract address (it is payable startGame)
+      const target = window.CONTRACTS && window.CONTRACTS.LEADERBOARD ? window.CONTRACTS.LEADERBOARD : window.CONTRACTS.TREASURY;
+      if (!target) {
+        alert("Missing CONTRACTS.LEADERBOARD in config.js");
         return false;
       }
 
-      const tx = await this.signer.sendTransaction({
-        to: window.CONTRACTS.TREASURY,
-        value: ethers.utils.parseEther("0.01")
-      });
-
-      console.log("START GAME TX:", tx.hash);
+      const feeWei = ethers.utils.parseEther("0.01"); // 0.01 SOMI
+      const tx = await this.signer.sendTransaction({ to: target, value: feeWei });
+      console.log("startGame tx:", tx.hash);
       await tx.wait(1);
-
-      setTimeout(() => this.refreshBalances(), 1500);
+      // refresh balances quick
+      setTimeout(()=> this.refreshBalances(), 1500);
       return true;
     } catch (err) {
-      console.error("START GAME FAILED:", err);
-      alert("Pembayaran STT gagal / dibatalkan.");
+      console.error("startGame error:", err);
       return false;
     }
   },
 
-  /* ================= SWAP ================= */
-  async requestSwap(points) {
-    if (!this.signer || !this.address) {
-      return { success: false, message: "Wallet belum connect." };
+  /* Submit score on-chain (calls contract.submitScore(uint256)) */
+  async submitScore(score) {
+    if (!this.provider || !this.signer) {
+      return { success: false, message: "Wallet not connected." };
     }
-
-    const pts = Number(points || 0);
-    if (pts < window.SWAP_CONFIG.RATE) {
-      return { success: false, message: "Poin belum cukup." };
+    if (!window.PACMAN_ABI || !window.CONTRACTS || !window.CONTRACTS.LEADERBOARD) {
+      return { success: false, message: "Contract ABI or address missing in config.js" };
     }
-
-    const pacAmount = Math.floor(
-      pts / window.SWAP_CONFIG.RATE
-    );
-
     try {
-      if (window.SWAP_CONFIG.FEE_STT) {
-        const tx = await this.signer.sendTransaction({
-          to: window.CONTRACTS.TREASURY,
-          value: ethers.utils.parseEther(window.SWAP_CONFIG.FEE_STT)
-        });
-
-        console.log("SWAP FEE TX:", tx.hash);
-        await tx.wait();
-      }
+      const contract = new ethers.Contract(window.CONTRACTS.LEADERBOARD, window.PACMAN_ABI, this.signer);
+      const tx = await contract.submitScore(score);
+      console.log("submitScore tx:", tx.hash);
+      await tx.wait(1);
+      // refresh leaderboards after success
+      return { success: true };
     } catch (err) {
-      console.error("SWAP FEE FAILED:", err);
-      return { success: false, message: "Fee swap dibatalkan." };
+      console.error("submitScore error:", err);
+      return { success: false, message: err && err.message ? err.message : "submit failed" };
     }
+  },
 
-    const req = {
-      id: "swap_" + Date.now(),
-      wallet: this.address,
-      points: pts,
-      pac: pacAmount,
-      time: Date.now(),
-      status: "pending"
-    };
-
-    const data = JSON.parse(localStorage.getItem("swap_requests") || "[]");
-    data.unshift(req);
-    localStorage.setItem("swap_requests", JSON.stringify(data));
-
-    return { success: true, pac: pacAmount, request: req };
+  /* Fetch top10 (read-only) */
+  async fetchTop10() {
+    if (!this.provider) {
+      return { addrs: [], scores: [] };
+    }
+    try {
+      if (!window.CONTRACTS || !window.CONTRACTS.LEADERBOARD || !window.PACMAN_ABI) return { addrs: [], scores: [] };
+      const contract = new ethers.Contract(window.CONTRACTS.LEADERBOARD, window.PACMAN_ABI, this.provider);
+      const res = await contract.getTop10();
+      // res: [addrs[], scores[]]
+      return { addrs: res[0], scores: res[1] };
+    } catch (err) {
+      console.error("fetchTop10 error:", err);
+      return { addrs: [], scores: [] };
+    }
   }
 };
 
-/* ================= BUTTON BINDING ================= */
-
-document.getElementById("btn-connect").onclick = async () => {
+// connect button binding (assumes #btn-connect exists)
+document.getElementById("btn-connect") && (document.getElementById("btn-connect").onclick = async () => {
   await DreamWeb3.connect();
-};
+});
