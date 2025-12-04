@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Somnia Pac-Man Halloween</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at top, #1a001f, #000);
+  color: white;
+  overflow: hidden;
+}
+
+#gameWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+#topHUD {
+  height: 70px;
+  background: linear-gradient(90deg, #ff7a00, #6a00ff);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 0 15px orange;
+}
+
+#playerInfo {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#scoreBox {
+  font-size: 18px;
+  background: rgba(0,0,0,0.4);
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid orange;
+}
+
+#gameArea {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url("https://i.imgur.com/18Z1nH3.png") center/cover;
+}
+
+/* 🟣 GAME CANVAS */
+#gameCanvas {
+  background: black;
+  width: 90vw;
+  height: 80vh;
+  border-radius: 16px;
+  border: 4px solid #ff7a00;
+  box-shadow: 0 0 25px purple;
+}
+
+#bottomHUD {
+  height: 80px;
+  background: rgba(20, 0, 30, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  border-top: 2px solid orange;
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+  background: linear-gradient(90deg, orange, purple);
+  box-shadow: 0 0 10px #ff7a00;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 18px orange;
+}
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+
+  <!-- 🔶 TOP HUD -->
+  <div id="topHUD">
+    <div id="playerInfo">Player: <span id="playerName">-</span></div>
+    <div id="scoreBox">Score: <span id="score">0</span></div>
+  </div>
+
+  <!-- 🎮 GAME AREA -->
+  <div id="gameArea">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- 🔻 BOTTOM HUD -->
+  <div id="bottomHUD">
+    <button onclick="startOnchain()">START GAME (0.01 SOMI)</button>
+    <button onclick="submitScore()">SUBMIT SCORE</button>
+    <button onclick="backMenu()">BACK MENU</button>
+  </div>
+
+</div>
+
+<script>
+/* ✅ LOAD DISPLAY NAME */
+const name = localStorage.getItem("displayName") || "Player";
+document.getElementById("playerName").innerText = name;
+
+let score = 0;
+
+/* ✅ DUMMY GAME LOOP (Sementara visual only) */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 800;
+canvas.height = 600;
+
+function drawFakePacman() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.arc(200,300,40,0.25*Math.PI,1.75*Math.PI);
+  ctx.lineTo(200,300);
+  ctx.fill();
+
+  ctx.fillStyle = "red";
+  ctx.fillRect(400,250,60,60);
+
+  score++;
+  document.getElementById("score").innerText = score;
+}
+
+setInterval(drawFakePacman, 400);
+
+
+/* ✅ START GAME ONCHAIN */
+async function startOnchain() {
+  alert("Start Game TX dipanggil dari web3.js");
+  // function ini tinggal panggil:
+  // startGameOnchain();
+}
+
+/* ✅ SUBMIT SCORE ONCHAIN */
+async function submitScore() {
+  alert("Submit score: " + score);
+  // submitScoreOnchain(score);
+}
+
+/* ✅ BACK TO MENU */
+function backMenu() {
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
