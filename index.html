@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <title>Somnia Halloween - Pacman Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- ETHERS -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
   <style>
     * {
       margin: 0;
@@ -20,7 +24,6 @@
       color: #fff;
     }
 
-    /* 🌕 Bubble Animation */
     .bubble {
       position: absolute;
       bottom: -100px;
@@ -34,7 +37,6 @@
       to { transform: translateY(-120vh); }
     }
 
-    /* 🎃 Center Screen */
     .screen {
       width: 100%;
       height: 100%;
@@ -74,7 +76,7 @@
       padding: 10px;
       border-radius: 8px;
       border: none;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       text-align: center;
       font-size: 16px;
       outline: none;
@@ -99,12 +101,14 @@
       box-shadow: 0 0 10px orange;
     }
 
-    /* 🔄 Hidden Screens */
-    .hidden {
-      display: none;
+    .wallet-box {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #ffb703;
     }
 
-    /* GAME & LEADERBOARD FRAME */
+    .hidden { display: none; }
+
     iframe {
       width: 100%;
       height: 100%;
@@ -115,84 +119,139 @@
 </head>
 <body>
 
-  <!-- 🎈 Bubble Effects -->
-  <script>
-    for (let i = 0; i < 25; i++) {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.style.width = bubble.style.height = Math.random() * 40 + 20 + "px";
-      bubble.style.left = Math.random() * 100 + "vw";
-      bubble.style.animationDuration = Math.random() * 6 + 6 + "s";
-      document.body.appendChild(bubble);
+<!-- 🎈 Bubble Effects -->
+<script>
+  for (let i = 0; i < 25; i++) {
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.style.width = bubble.style.height = Math.random() * 40 + 20 + "px";
+    bubble.style.left = Math.random() * 100 + "vw";
+    bubble.style.animationDuration = Math.random() * 6 + 6 + "s";
+    document.body.appendChild(bubble);
+  }
+</script>
+
+<!-- 🎃 MAIN MENU -->
+<div id="menuScreen" class="screen">
+  <h1>WELCOME SOMNIA HALLOWEEN</h1>
+  <h2>PAC-MAN EDITION</h2>
+
+  <div class="menu-box">
+    <div id="walletStatus" class="wallet-box">Wallet: Not Connected</div>
+
+    <input 
+      id="displayNameInput" 
+      type="text" 
+      maxlength="12" 
+      placeholder="Enter Display Name (Max 12)"
+    />
+
+    <button onclick="connectWallet()">CONNECT WALLET</button>
+    <button onclick="saveName()">EDIT DISPLAY NAME</button>
+    <button onclick="openPlay()">PLAY</button>
+    <button onclick="openLeaderboard()">LEADERBOARD</button>
+    <button onclick="quitGame()">QUIT</button>
+  </div>
+</div>
+
+<!-- 🎮 PLAY -->
+<div id="playScreen" class="screen hidden">
+  <iframe src="pacman.html"></iframe>
+</div>
+
+<!-- 🏆 LEADERBOARD -->
+<div id="leaderboardScreen" class="screen hidden">
+  <iframe src="leaderboard.html"></iframe>
+</div>
+
+<script>
+  /* ========= WALLET CONFIG ========= */
+  const SOMNIA = {
+    chainId: "0x13a7",
+    chainName: "Somnia Mainnet",
+    nativeCurrency: { name: "SOMI", symbol: "SOMI", decimals: 18 },
+    rpcUrls: ["https://api.infra.mainnet.somnia.network"],
+    blockExplorerUrls: ["https://shannon-explorer.somnia.network"]
+  };
+
+  let WALLET = null;
+
+  async function connectWallet() {
+    if (!window.ethereum) {
+      alert("Install MetaMask dulu!");
+      return;
     }
-  </script>
 
-  <!-- 🎃 MAIN MENU -->
-  <div id="menuScreen" class="screen">
-    <h1>WELCOME SOMNIA HALLOWEEN</h1>
-    <h2>PAC-MAN EDITION</h2>
+    await ethereum.request({ method: "eth_requestAccounts" });
 
-    <div class="menu-box">
-      <input 
-        id="displayNameInput" 
-        type="text" 
-        maxlength="12" 
-        placeholder="Enter Display Name (Max 12)"
-      />
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const network = await provider.getNetwork();
 
-      <button onclick="saveName()">EDIT DISPLAY NAME</button>
-      <button onclick="openPlay()">PLAY</button>
-      <button onclick="openLeaderboard()">LEADERBOARD</button>
-      <button onclick="quitGame()">QUIT</button>
-    </div>
-  </div>
-
-  <!-- 🎮 PLAY SCREEN -->
-  <div id="playScreen" class="screen hidden">
-    <!-- Nanti disambungkan ke Pacman + Start TX -->
-    <iframe src="pacman.html"></iframe>
-  </div>
-
-  <!-- 🏆 LEADERBOARD SCREEN -->
-  <div id="leaderboardScreen" class="screen hidden">
-    <!-- Nanti disambungkan ke leaderboard onchain -->
-    <iframe src="leaderboard.html"></iframe>
-  </div>
-
-  <script>
-    const nameInput = document.getElementById("displayNameInput");
-    const savedName = localStorage.getItem("displayName");
-    if (savedName) nameInput.value = savedName;
-
-    function saveName() {
-      let name = nameInput.value.trim();
-      if (name.length === 0) {
-        alert("Nama tidak boleh kosong!");
+    if (network.chainId !== 5031) {
+      try {
+        await ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [SOMNIA]
+        });
+      } catch (e) {
+        alert("Gagal switch ke Somnia Mainnet");
         return;
       }
-      if (name.length > 12) {
-        alert("Max 12 karakter!");
-        return;
-      }
-      localStorage.setItem("displayName", name);
-      alert("Display Name disimpan!");
     }
 
-    function openPlay() {
-      document.getElementById("menuScreen").classList.add("hidden");
-      document.getElementById("playScreen").classList.remove("hidden");
+    const signer = provider.getSigner();
+    WALLET = await signer.getAddress();
+
+    document.getElementById("walletStatus").innerText =
+      "Wallet: " + WALLET.slice(0, 6) + "..." + WALLET.slice(-4);
+
+    // Load nama khusus wallet ini
+    const savedName = localStorage.getItem("name_" + WALLET);
+    if (savedName) {
+      document.getElementById("displayNameInput").value = savedName;
+    }
+  }
+
+  function saveName() {
+    if (!WALLET) {
+      alert("Connect wallet dulu!");
+      return;
     }
 
-    function openLeaderboard() {
-      document.getElementById("menuScreen").classList.add("hidden");
-      document.getElementById("leaderboardScreen").classList.remove("hidden");
+    let name = displayNameInput.value.trim();
+    if (!name) return alert("Nama tidak boleh kosong!");
+    if (name.length > 12) return alert("Max 12 karakter!");
+
+    localStorage.setItem("name_" + WALLET, name);
+    alert("Display Name disimpan untuk wallet ini!");
+  }
+
+  function openPlay() {
+    if (!WALLET) {
+      alert("Connect wallet dulu!");
+      return;
     }
 
-    function quitGame() {
-      window.open("about:blank", "_self");
-      window.close();
+    const name = localStorage.getItem("name_" + WALLET);
+    if (!name) {
+      alert("Isi Display Name dulu!");
+      return;
     }
-  </script>
+
+    menuScreen.classList.add("hidden");
+    playScreen.classList.remove("hidden");
+  }
+
+  function openLeaderboard() {
+    menuScreen.classList.add("hidden");
+    leaderboardScreen.classList.remove("hidden");
+  }
+
+  function quitGame() {
+    window.open("about:blank", "_self");
+    window.close();
+  }
+</script>
 
 </body>
-</html>
+      </html>
