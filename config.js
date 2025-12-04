@@ -1,28 +1,109 @@
-// config.js — FINAL (perbaikan alamat PAC)
+/* ================================
+   SOMNIA MAINNET CONFIG (FINAL)
+   ================================ */
+
+/* === CHAIN CONFIG === */
 window.SOMNIA_CHAIN = {
-  chainId: "0xC488", // 50312
-  chainName: "Somnia Testnet",
-  nativeCurrency: { name: "Somnia Test Token", symbol: "STT", decimals: 18 },
-  rpcUrls: ["https://dream-rpc.somnia.network"],
-  blockExplorerUrls: ["https://shannon-explorer.somnia.network/"]
+  chainId: "0x13a7", // 5031
+  chainName: "Somnia Mainnet",
+  nativeCurrency: {
+    name: "Somnia",
+    symbol: "SOMI",
+    decimals: 18
+  },
+  rpcUrls: [
+    "https://api.infra.mainnet.somnia.network"
+  ],
+  blockExplorerUrls: []
 };
 
+
+/* ================================
+   CONTRACT ADDRESSES (GANTI INI)
+   ================================ */
 window.CONTRACTS = {
-  PAC_TOKEN: "0xf0993eb1fE7a5368778c4B5a8aE52c0fd503E7c9", // <-- perbaikan (leading f)
-  TREASURY: "0x5AC9aFd5BF35950316c6EF7d185f3e204f200D32" // owner / treasury (dari explorer)
+  // ✅ GANTI DENGAN ALAMAT CONTRACT PACMAN LEADERBOARD ANDA
+  LEADERBOARD: "0xD76b767102f2610b0C97FEE84873c1fAA4c7C365",
+
+  // ✅ GANTI DENGAN WALLET PENERIMA 0.01 SOMI JIKA BERBEDA
+  TREASURY: "0x5AC9aEd51B53950316c6F7d185f3eE204f200D32"
 };
 
-window.ABI = {
-  PAC: [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function transfer(address to, uint256 amount) returns (bool)",
-    "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-    "function allowance(address owner, address spender) view returns (uint256)",
-    "function decimals() view returns (uint8)"
-  ]
+
+/* ================================
+   GAME ECONOMY
+   ================================ */
+window.GAME_CONFIG = {
+  PLAY_FEE_SOMI: "0.01",       // biaya main
+  PLAY_FEE_WEI: "10000000000000000" // 0.01 SOMI in wei
 };
 
-window.SWAP_CONFIG = {
-  RATE: 10,         // 10 score = 1 PAC
-  FEE_STT: "0.005"  // fee STT untuk swap (string in ETH units) — pembayaran ke TREASURY
+
+/* ================================
+   PACMAN LEADERBOARD ABI (FINAL)
+   ================================ */
+window.PACMAN_ABI = [
+  {
+    "inputs": [],
+    "stateMutability": "payable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "score",
+        "type": "uint256"
+      }
+    ],
+    "name": "submitScore",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTop10",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "startFeeWei",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+
+/* ================================
+   UI DEFAULT STATE
+   ================================ */
+window.APP_STATE = {
+  network: "SOMNIA_MAINNET",
+  game: "PACMAN_HALLOWEEN",
+  status: "READY"
 };
+
+console.log("✅ Somnia Mainnet Config Loaded");
+console.log("Chain:", window.SOMNIA_CHAIN);
+console.log("Contracts:", window.CONTRACTS);
