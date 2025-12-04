@@ -1,100 +1,70 @@
 let DISPLAY_NAME = "";
 let WALLET = null;
 
-/* ===== UI ELEMENTS ===== */
-const mainMenu = document.getElementById("main-menu");
-const gameWrapper = document.getElementById("game-wrapper");
-const lbPanel = document.getElementById("leaderboard-panel");
-const lbList = document.getElementById("leaderboard-list");
+window.addEventListener("load", () => {
+  console.log("[APP] Loaded");
 
-const btnPlay = document.getElementById("btn-play");
-const btnLB = document.getElementById("btn-leaderboard");
-const btnQuit = document.getElementById("btn-quit");
+  const mainMenu = document.getElementById("main-menu");
+  const gameWrapper = document.getElementById("game-wrapper");
+  const lbPanel = document.getElementById("leaderboard-panel");
 
-const nameInput = document.getElementById("display-name");
-const walletInfo = document.getElementById("wallet-info");
+  const btnPlay = document.getElementById("btn-play");
+  const btnLB = document.getElementById("btn-leaderboard");
+  const btnQuit = document.getElementById("btn-quit");
 
-/* ===== PLAY GAME ===== */
-btnPlay.onclick = async () => {
-  DISPLAY_NAME = nameInput.value.trim();
-  if (!DISPLAY_NAME) {
-    alert("Isi Display Name dulu!");
-    return;
-  }
+  const nameInput = document.getElementById("display-name");
+  const walletInfo = document.getElementById("wallet-info");
 
-  if (!window.DreamWeb3 || !DreamWeb3.address) {
-    await DreamWeb3.connect();
-  }
+  // ✅ DEBUG: pastikan tombol benar-benar ketemu
+  console.log("btnPlay:", btnPlay);
 
-  WALLET = DreamWeb3.address;
-  walletInfo.innerText = "Wallet: " + WALLET.slice(0, 6) + "..." + WALLET.slice(-4);
+  /* ===== PLAY ===== */
+  btnPlay.addEventListener("click", async () => {
+    console.log("[CLICK] PLAY");
 
-  const ok = await DreamWeb3.startGame();
-  if (!ok) return;
+    DISPLAY_NAME = nameInput.value.trim();
 
-  mainMenu.style.display = "none";
-  gameWrapper.style.display = "block";
-};
+    if (!DISPLAY_NAME) {
+      alert("Isi Display Name dulu!");
+      return;
+    }
 
-/* ===== LEADERBOARD ===== */
-btnLB.onclick = async () => {
-  mainMenu.style.display = "none";
-  lbPanel.style.display = "block";
-  await loadLeaderboard();
-};
+    if (!window.DreamWeb3 || !DreamWeb3.address) {
+      await DreamWeb3.connect();
+    }
 
-/* ===== QUIT ===== */
-btnQuit.onclick = () => {
-  window.close();
-  window.location.href = "about:blank";
-};
+    WALLET = DreamWeb3.address;
 
-/* ===== BACK TO MENU ===== */
-function backToMenu() {
-  gameWrapper.style.display = "none";
-  lbPanel.style.display = "none";
-  mainMenu.style.display = "flex";
-}
+    walletInfo.innerText =
+      "Wallet: " + WALLET.slice(0, 6) + "..." + WALLET.slice(-4);
 
-/* ===== RECEIVE BACK FROM PACMAN IFRAME ===== */
-window.addEventListener("message", (event) => {
-  if (!event.data) return;
+    const ok = await DreamWeb3.startGame();
+    if (!ok) return;
 
-  if (event.data.type === "BACK_TO_MENU") {
-    backToMenu();
-  }
+    mainMenu.style.display = "none";
+    gameWrapper.style.display = "block";
+  });
 
-  if (event.data.type === "SUBMIT_SCORE") {
-    submitScoreOnchain(event.data.score);
-  }
+  /* ===== LEADERBOARD ===== */
+  btnLB.addEventListener("click", async () => {
+    mainMenu.style.display = "none";
+    lbPanel.style.display = "block";
+  });
+
+  /* ===== QUIT ===== */
+  btnQuit.addEventListener("click", () => {
+    window.close();
+    window.location.href = "about:blank";
+  });
+
+  /* ===== BACK FROM GAME ===== */
+  window.addEventListener("message", (event) => {
+    if (!event.data) return;
+
+    if (event.data.type === "BACK_TO_MENU") {
+      gameWrapper.style.display = "none";
+      lbPanel.style.display = "none";
+      mainMenu.style.display = "flex";
+    }
+  });
 });
-
-/* ===== SUBMIT SCORE ONCHAIN ===== */
-async function submitScoreOnchain(score) {
-  try {
-    await DreamWeb3.submitScore(score);
-    await loadLeaderboard();
-  } catch (e) {
-    console.error("Submit score failed:", e);
-  }
-}
-
-/* ===== LOAD LEADERBOARD ONCHAIN ===== */
-async function loadLeaderboard() {
-  lbList.innerHTML = "Loading...";
-
-  try {
-    const data = await DreamWeb3.getTop10();
-    lbList.innerHTML = "";
-
-    data.players.forEach((addr, i) => {
-      const div = document.createElement("div");
-      div.className = "lb-item";
-      div.innerHTML = `#${i + 1} — ${addr.slice(0, 6)}...${addr.slice(-4)} → ${data.scores[i]} pts`;
-      lbList.appendChild(div);
-    });
-  } catch (e) {
-    console.error("Load leaderboard error:", e);
-    lbList.innerHTML = "Failed load leaderboard";
-  }
-      }
