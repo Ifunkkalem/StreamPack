@@ -1,64 +1,198 @@
-<!doctype html>
-<html lang="id">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SOM - PACK HALLOWEEN</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="game-controls.css" />
-  <!-- gunakan lokal ethers min build agar CSP friendly -->
-  <script src="libs/ethers.min.js"></script>
-  <script src="config.js"></script>
+  <meta charset="UTF-8" />
+  <title>Somnia Halloween - Pacman Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Trebuchet MS', sans-serif;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #2b0033, #0a0010);
+      color: #fff;
+    }
+
+    /* 🌕 Bubble Animation */
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(255, 140, 0, 0.2);
+      border-radius: 50%;
+      animation: floatUp 12s infinite ease-in;
+    }
+
+    @keyframes floatUp {
+      from { transform: translateY(0); }
+      to { transform: translateY(-120vh); }
+    }
+
+    /* 🎃 Center Screen */
+    .screen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      position: relative;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 42px;
+      color: orange;
+      text-shadow: 0 0 10px purple, 0 0 20px purple;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #c77dff;
+      margin-bottom: 30px;
+    }
+
+    .menu-box {
+      background: rgba(20, 0, 30, 0.8);
+      border: 2px solid orange;
+      border-radius: 16px;
+      padding: 30px 40px;
+      box-shadow: 0 0 20px purple;
+      min-width: 300px;
+    }
+
+    .menu-box input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .menu-box button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: linear-gradient(90deg, orange, purple);
+      color: white;
+      transition: 0.2s;
+    }
+
+    .menu-box button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px orange;
+    }
+
+    /* 🔄 Hidden Screens */
+    .hidden {
+      display: none;
+    }
+
+    /* GAME & LEADERBOARD FRAME */
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: black;
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/Ds.png" class="logo" alt="logo" />
-      <div>
-        <h1>DreamStream — Pac-Man (MAINNET)</h1>
-        <p class="muted">Somnia Mainnet — bayar setiap play</p>
-      </div>
+
+  <!-- 🎈 Bubble Effects -->
+  <script>
+    for (let i = 0; i < 25; i++) {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.style.width = bubble.style.height = Math.random() * 40 + 20 + "px";
+      bubble.style.left = Math.random() * 100 + "vw";
+      bubble.style.animationDuration = Math.random() * 6 + 6 + "s";
+      document.body.appendChild(bubble);
+    }
+  </script>
+
+  <!-- 🎃 MAIN MENU -->
+  <div id="menuScreen" class="screen">
+    <h1>WELCOME SOMNIA HALLOWEEN</h1>
+    <h2>PAC-MAN EDITION</h2>
+
+    <div class="menu-box">
+      <input 
+        id="displayNameInput" 
+        type="text" 
+        maxlength="12" 
+        placeholder="Enter Display Name (Max 12)"
+      />
+
+      <button onclick="saveName()">EDIT DISPLAY NAME</button>
+      <button onclick="openPlay()">PLAY</button>
+      <button onclick="openLeaderboard()">LEADERBOARD</button>
+      <button onclick="quitGame()">QUIT</button>
     </div>
+  </div>
 
-    <div class="controls">
-      <div id="addr-display">Not connected</div>
-      <button id="btn-connect" class="btn">Connect Wallet</button>
-      <div id="live-indicator" class="indicator offline">OFFLINE</div>
-    </div>
-  </header>
+  <!-- 🎮 PLAY SCREEN -->
+  <div id="playScreen" class="screen hidden">
+    <!-- Nanti disambungkan ke Pacman + Start TX -->
+    <iframe src="pacman.html"></iframe>
+  </div>
 
-  <main class="container" style="height: calc(100vh - 110px);">
-    <section class="left" style="width:70%; float:left; padding-right:16px; box-sizing:border-box; height:100%;">
-      <div class="card game-frame" style="height:100%;">
-        <h3>PAC-MAN — Full Frame</h3>
-        <!-- IFRAME diatur full/high supaya area permainan lebar -->
-        <iframe id="pacman-iframe" src="Pacman/pacman_hybrid.html"
-          style="width:100%; height:calc(100% - 36px); border-radius:8px; border:0; background:#0b1117;">
-        </iframe>
-      </div>
-    </section>
+  <!-- 🏆 LEADERBOARD SCREEN -->
+  <div id="leaderboardScreen" class="screen hidden">
+    <!-- Nanti disambungkan ke leaderboard onchain -->
+    <iframe src="leaderboard.html"></iframe>
+  </div>
 
-    <aside class="right" style="width:30%; float:right; height:100%; box-sizing:border-box;">
-      <div class="card balances">
-        <h3>Balances</h3>
-        <div>SOMI: <span id="balance-stt">-</span></div>
-      </div>
+  <script>
+    const nameInput = document.getElementById("displayNameInput");
+    const savedName = localStorage.getItem("displayName");
+    if (savedName) nameInput.value = savedName;
 
-      <div class="card leaderboard" style="margin-top:12px;">
-        <h3>Leaderboard (On-chain Top 10)</h3>
-        <ol id="leaderboard-list"></ol>
-      </div>
+    function saveName() {
+      let name = nameInput.value.trim();
+      if (name.length === 0) {
+        alert("Nama tidak boleh kosong!");
+        return;
+      }
+      if (name.length > 12) {
+        alert("Max 12 karakter!");
+        return;
+      }
+      localStorage.setItem("displayName", name);
+      alert("Display Name disimpan!");
+    }
 
-      <div class="card activity" style="margin-top:12px;">
-        <h3>Activity</h3>
-        <div id="activity" class="feed"><div>[init] Ready</div></div>
-      </div>
-    </aside>
-  </main>
+    function openPlay() {
+      document.getElementById("menuScreen").classList.add("hidden");
+      document.getElementById("playScreen").classList.remove("hidden");
+    }
 
-  <footer class="footer muted">Somnia HALLOWEEN — Pacman Competition</footer>
+    function openLeaderboard() {
+      document.getElementById("menuScreen").classList.add("hidden");
+      document.getElementById("leaderboardScreen").classList.remove("hidden");
+    }
 
-  <script src="web3.js"></script>
-  <script src="app.js"></script>
+    function quitGame() {
+      window.open("about:blank", "_self");
+      window.close();
+    }
+  </script>
+
 </body>
 </html>
