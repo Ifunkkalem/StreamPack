@@ -6,72 +6,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-* {
+html, body {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Trebuchet MS', sans-serif;
-}
-
-body {
-  width: 100vw;
-  height: 100vh;
-  background: radial-gradient(circle at top, #1a001f, #000);
-  color: white;
+  background: #050008;
+  font-family: Arial, sans-serif;
   overflow: hidden;
 }
 
-#gameWrapper {
+#root {
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
 }
 
-#topHUD {
+/* ===== TOP HUD ===== */
+#topBar {
   height: 70px;
-  background: linear-gradient(90deg, #ff7a00, #6a00ff);
+  background: linear-gradient(90deg, #ff7a00, #7b00ff);
+  color: white;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 0 20px;
+  font-weight: bold;
   box-shadow: 0 0 15px orange;
 }
 
-#playerInfo {
-  font-size: 18px;
-  font-weight: bold;
-}
-
 #scoreBox {
-  font-size: 18px;
   background: rgba(0,0,0,0.4);
   padding: 8px 16px;
   border-radius: 10px;
-  border: 1px solid orange;
 }
 
+/* ===== GAME AREA ===== */
 #gameArea {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: url("https://i.imgur.com/18Z1nH3.png") center/cover;
+  background: radial-gradient(circle, #14001f, #000);
 }
 
-/* 🟣 GAME CANVAS */
-#gameCanvas {
+canvas {
   background: black;
-  width: 90vw;
-  height: 80vh;
+  border: 4px solid orange;
   border-radius: 16px;
-  border: 4px solid #ff7a00;
-  box-shadow: 0 0 25px purple;
+  box-shadow: 0 0 30px purple;
 }
 
-#bottomHUD {
-  height: 80px;
-  background: rgba(20, 0, 30, 0.95);
+/* ===== BOTTOM HUD ===== */
+#bottomBar {
+  height: 90px;
+  background: #100015;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -80,7 +69,7 @@ body {
 }
 
 button {
-  padding: 12px 24px;
+  padding: 12px 22px;
   font-size: 16px;
   border-radius: 12px;
   border: none;
@@ -88,87 +77,87 @@ button {
   color: white;
   font-weight: bold;
   background: linear-gradient(90deg, orange, purple);
-  box-shadow: 0 0 10px #ff7a00;
-  transition: 0.2s;
+  box-shadow: 0 0 10px orange;
 }
 
 button:hover {
   transform: scale(1.08);
-  box-shadow: 0 0 18px orange;
 }
 </style>
 </head>
+
 <body>
+<div id="root">
 
-<div id="gameWrapper">
-
-  <!-- 🔶 TOP HUD -->
-  <div id="topHUD">
-    <div id="playerInfo">Player: <span id="playerName">-</span></div>
+  <!-- ✅ TOP -->
+  <div id="topBar">
+    <div>🎃 Player: <span id="playerName">-</span></div>
     <div id="scoreBox">Score: <span id="score">0</span></div>
   </div>
 
-  <!-- 🎮 GAME AREA -->
+  <!-- ✅ GAME -->
   <div id="gameArea">
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="game" width="800" height="600"></canvas>
   </div>
 
-  <!-- 🔻 BOTTOM HUD -->
-  <div id="bottomHUD">
+  <!-- ✅ BUTTONS -->
+  <div id="bottomBar">
     <button onclick="startOnchain()">START GAME (0.01 SOMI)</button>
     <button onclick="submitScore()">SUBMIT SCORE</button>
-    <button onclick="backMenu()">BACK MENU</button>
+    <button onclick="backMenu()">BACK</button>
   </div>
 
 </div>
 
 <script>
-/* ✅ LOAD DISPLAY NAME */
-const name = localStorage.getItem("displayName") || "Player";
-document.getElementById("playerName").innerText = name;
+/* ===== PLAYER NAME ===== */
+document.getElementById("playerName").innerText =
+  localStorage.getItem("displayName") || "Player";
 
-let score = 0;
-
-/* ✅ DUMMY GAME LOOP (Sementara visual only) */
-const canvas = document.getElementById("gameCanvas");
+/* ===== GAME DUMMY (ANTI BLACK SCREEN) ===== */
+const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = 800;
-canvas.height = 600;
+let score = 0;
+let x = 100;
+let y = 300;
+let dx = 3;
 
-function drawFakePacman() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function loop() {
+  ctx.clearRect(0,0,800,600);
 
+  // PACMAN
   ctx.fillStyle = "yellow";
   ctx.beginPath();
-  ctx.arc(200,300,40,0.25*Math.PI,1.75*Math.PI);
-  ctx.lineTo(200,300);
+  ctx.arc(x, y, 30, 0.25*Math.PI, 1.75*Math.PI);
+  ctx.lineTo(x, y);
   ctx.fill();
 
+  // GHOST
   ctx.fillStyle = "red";
-  ctx.fillRect(400,250,60,60);
+  ctx.fillRect(450, 280, 50, 50);
+
+  x += dx;
+  if (x > 750 || x < 50) dx *= -1;
 
   score++;
   document.getElementById("score").innerText = score;
+
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* ===== ONCHAIN PLACEHOLDER ===== */
+function startOnchain() {
+  alert("TX START GAME DIPANGGIL!");
+  // panggil dari web3.js -> startGame()
 }
 
-setInterval(drawFakePacman, 400);
-
-
-/* ✅ START GAME ONCHAIN */
-async function startOnchain() {
-  alert("Start Game TX dipanggil dari web3.js");
-  // function ini tinggal panggil:
-  // startGameOnchain();
-}
-
-/* ✅ SUBMIT SCORE ONCHAIN */
-async function submitScore() {
+function submitScore() {
   alert("Submit score: " + score);
-  // submitScoreOnchain(score);
+  // kirim ke smart contract submitScore(score)
 }
 
-/* ✅ BACK TO MENU */
 function backMenu() {
   window.location.href = "index.html";
 }
