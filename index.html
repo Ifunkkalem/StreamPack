@@ -1,198 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Somnia Halloween - Pacman Edition</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Trebuchet MS', sans-serif;
-    }
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <link rel="stylesheet" href="style.css" />
+  <script src="libs/ethers.min.js"></script>
+
+  <style>
     body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: radial-gradient(circle at top, #2b0033, #0a0010);
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #2b1055, #12001f);
       color: #fff;
     }
 
-    /* 🌕 Bubble Animation */
-    .bubble {
-      position: absolute;
-      bottom: -100px;
-      background: rgba(255, 140, 0, 0.2);
-      border-radius: 50%;
-      animation: floatUp 12s infinite ease-in;
-    }
-
-    @keyframes floatUp {
-      from { transform: translateY(0); }
-      to { transform: translateY(-120vh); }
-    }
-
-    /* 🎃 Center Screen */
-    .screen {
-      width: 100%;
-      height: 100%;
+    #main-menu {
+      position: fixed;
+      inset: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      z-index: 10;
-      position: relative;
+      justify-content: center;
+      gap: 16px;
+      background: radial-gradient(circle at top, #ff7a00, #3b0057);
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: bold;
       text-align: center;
+      margin-bottom: 14px;
+      text-shadow: 0 0 10px rgba(0,0,0,.5);
     }
 
-    h1 {
-      font-size: 42px;
-      color: orange;
-      text-shadow: 0 0 10px purple, 0 0 20px purple;
-      margin-bottom: 8px;
+    .menu-btn {
+      width: 220px;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      background: linear-gradient(90deg, #ff9800, #9c27b0);
+      color: #fff;
     }
 
-    h2 {
-      font-size: 22px;
-      color: #c77dff;
-      margin-bottom: 30px;
+    .menu-btn:hover {
+      transform: scale(1.05);
+      opacity: .9;
     }
 
-    .menu-box {
-      background: rgba(20, 0, 30, 0.8);
-      border: 2px solid orange;
-      border-radius: 16px;
-      padding: 30px 40px;
-      box-shadow: 0 0 20px purple;
-      min-width: 300px;
-    }
-
-    .menu-box input {
-      width: 100%;
+    #display-name {
       padding: 10px;
       border-radius: 8px;
       border: none;
-      margin-bottom: 20px;
+      width: 220px;
       text-align: center;
       font-size: 16px;
-      outline: none;
     }
 
-    .menu-box button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      background: linear-gradient(90deg, orange, purple);
-      color: white;
-      transition: 0.2s;
-    }
-
-    .menu-box button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 10px orange;
-    }
-
-    /* 🔄 Hidden Screens */
-    .hidden {
+    #game-wrapper {
       display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
     }
 
-    /* GAME & LEADERBOARD FRAME */
-    iframe {
-      width: 100%;
-      height: 100%;
+    #pacman-iframe {
+      width: 100vw;
+      height: 100vh;
       border: none;
-      background: black;
+    }
+
+    #leaderboard-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #12001f;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .lb-item {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
     }
   </style>
 </head>
+
 <body>
 
-  <!-- 🎈 Bubble Effects -->
-  <script>
-    for (let i = 0; i < 25; i++) {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.style.width = bubble.style.height = Math.random() * 40 + 20 + "px";
-      bubble.style.left = Math.random() * 100 + "vw";
-      bubble.style.animationDuration = Math.random() * 6 + 6 + "s";
-      document.body.appendChild(bubble);
-    }
-  </script>
+<!-- ===== MAIN MENU ===== -->
+<div id="main-menu">
+  <div class="title">🎃 WELCOME SOMNIA HALLOWEEN<br>PAC-MAN EDITION 🎃</div>
 
-  <!-- 🎃 MAIN MENU -->
-  <div id="menuScreen" class="screen">
-    <h1>WELCOME SOMNIA HALLOWEEN</h1>
-    <h2>PAC-MAN EDITION</h2>
+  <input id="display-name" maxlength="12" placeholder="Display Name (max 12)" />
 
-    <div class="menu-box">
-      <input 
-        id="displayNameInput" 
-        type="text" 
-        maxlength="12" 
-        placeholder="Enter Display Name (Max 12)"
-      />
+  <button class="menu-btn" id="btn-play">PLAY</button>
+  <button class="menu-btn" id="btn-leaderboard">LEADERBOARD</button>
+  <button class="menu-btn" id="btn-quit">QUIT</button>
 
-      <button onclick="saveName()">EDIT DISPLAY NAME</button>
-      <button onclick="openPlay()">PLAY</button>
-      <button onclick="openLeaderboard()">LEADERBOARD</button>
-      <button onclick="quitGame()">QUIT</button>
-    </div>
+  <div style="margin-top:20px;font-size:12px;opacity:.8" id="wallet-info">
+    Wallet: Not Connected
   </div>
+</div>
 
-  <!-- 🎮 PLAY SCREEN -->
-  <div id="playScreen" class="screen hidden">
-    <!-- Nanti disambungkan ke Pacman + Start TX -->
-    <iframe src="Pacman/pacman.html"></iframe>
-  </div>
+<!-- ===== GAME VIEW ===== -->
+<div id="game-wrapper">
+  <iframe id="pacman-iframe" src="Pacman/pacman.html"></iframe>
+</div>
 
-  <!-- 🏆 LEADERBOARD SCREEN -->
-  <div id="leaderboardScreen" class="screen hidden">
-    <!-- Nanti disambungkan ke leaderboard onchain -->
-    <iframe src="leaderboard.html"></iframe>
-  </div>
+<!-- ===== LEADERBOARD VIEW ===== -->
+<div id="leaderboard-panel">
+  <h2>🏆 TOP 10 LEADERBOARD</h2>
+  <div id="leaderboard-list"></div>
+  <br>
+  <button class="menu-btn" onclick="backToMenu()">BACK</button>
+</div>
 
-  <script>
-    const nameInput = document.getElementById("displayNameInput");
-    const savedName = localStorage.getItem("displayName");
-    if (savedName) nameInput.value = savedName;
-
-    function saveName() {
-      let name = nameInput.value.trim();
-      if (name.length === 0) {
-        alert("Nama tidak boleh kosong!");
-        return;
-      }
-      if (name.length > 12) {
-        alert("Max 12 karakter!");
-        return;
-      }
-      localStorage.setItem("displayName", name);
-      alert("Display Name disimpan!");
-    }
-
-    function openPlay() {
-      document.getElementById("menuScreen").classList.add("hidden");
-      document.getElementById("playScreen").classList.remove("hidden");
-    }
-
-    function openLeaderboard() {
-      document.getElementById("menuScreen").classList.add("hidden");
-      document.getElementById("leaderboardScreen").classList.remove("hidden");
-    }
-
-    function quitGame() {
-      window.open("about:blank", "_self");
-      window.close();
-    }
-  </script>
-
+<script src="config.js"></script>
+<script src="web3.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
